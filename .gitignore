@@ -3,3 +3,9 @@
 
 # Ada Library Information
 *.ali
+obj/
+lib/
+alire/
+bin/
+.clangd/
+.clang-format

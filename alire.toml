@@ -1,0 +1,13 @@
+name = "clortho"
+description = "Shiny new project"
+version = "0.0.0"
+
+authors = ["Riccardo Bernardini"]
+maintainers = ["Riccardo Bernardini <riccardo.bernardini@uniud.it>"]
+maintainers-logins = ["mockturtle"]
+
+executables = ["clortho"]
+
+
+[[depends-on]]  # This line was added by `alr with`
+sparknacl = "^2.0.0"  # This line was added by `alr with`
