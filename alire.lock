@@ -96,4 +96,35 @@ commit = "77e57c77b41bb2f8402c810e8c80321581a477ce"
 url = "git+https://github.com/rod-chapman/SPARKNaCl.git"
 [[solution.state.release.depends-on]]
 gnat = ">=2020"
+[[solution.state]]
+crate = "uri_ada"
+fulfilment = "solved"
+pinned = false
+transitivity = "direct"
+versions = "*"
+[solution.state.release]
+authors = [
+"Alejandro R. Mosteo",
+]
+description = "Processing of URI strings"
+licenses = "LGPL-3.0-only"
+maintainers = [
+"Alejandro R. Mosteo <alejandro@mosteo.com>",
+]
+maintainers-logins = [
+"mosteo",
+]
+name = "uri_ada"
+project-files = [
+"uri.gpr",
+]
+tags = [
+"uri",
+"url",
+"utility",
+]
+version = "1.0.0"
+[solution.state.release.origin]
+commit = "84a01e5c72a735cbda50bde77cfe77008e06d9cf"
+url = "git+https://github.com/mosteo/uri-ada.git"
 
