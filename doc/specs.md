@@ -1,4 +1,4 @@
-# Ideas in random order about what clortho should du
+# Ideas in random order about what clortho should do
 
 ## Model
 
@@ -13,8 +13,8 @@
     * If two names match their "matching strength" is equal to the number of defined components that matches
     * The entry that "matches more" the CL is selected
   * If at least one name is not an URL, then the match is just a string comparison
-  * Matching is done in a case-insensitive way, unless a specific option is used
-  * If --strict is specified, URLs are matched as strings
+  * Matching is done in a case-insensitive way, unless `--case-sensitive` is specified
+  * If `--not-smart` or `--strict` is specified, even URLs are matched as strings
 
 * A name remembers all the past passwords.  This is useful because sometimes it can happen that a password is renewed by mistake and overwriting the old can be quite annoying. (Yes, it happened to me)
 * An old password can be recovered with `--old` (for the previous one) or `--back=n` (for the `n`-th one, `--back=1` is equivalent to `--old`)
@@ -24,7 +24,7 @@
 
 * A new entry can be created with `--create`
 * To an existing entry we can add a new password with `--renew`
-* The password can be specified directly with `--password=foobar`; if `--password=-` is used, the password is read from standard input
+* The password can be specified directly with `--password=foobar`; if `--password` without parameter is used, the password is read from standard input
 * If no `--password` is given, the password will be randomly generated
 * When the password is generated
   * With `--len` the number of characters of the password can be specified
@@ -68,7 +68,7 @@ Every `set-spec` in the spec is interpreted as follows
 * If `set-spec` has more than one character and it begins with `!`, the set is marked as _prohibited_ (`max=min=0`), the `!` removed and processing continues. If `set-spec = "!"`, then the set is a mandatory set that contains only `!`
 * If `set-spec` has more than one character and it begins with `^`, the specified set is _complemented_ (e.g., ),  the `^` removed and processing continues. If `set-spec = "^"`, then the set  contains only `^`. For example
   * `/^A-Za-z/` is the set of all non-alphabetic characters
-  * if `/!0-9/` is used, the password can contain only digits
+  * if `/!^0-9/` is used, the password can contain only digits
   * with `/!^/` the password cannot have a `^`
 * At this point the set is the union of all the chars in the `set-spec`. If `//` is used does not close the set, but it is equivalent to `/`.  For example `////` is the set with only `/`, `/^///` is everything but `/`
 
@@ -80,4 +80,33 @@ After all the `set-spec` in the spec string have been parsed
 * To the prohibited set `min=max=0` is assigned
 * To each mandatory set `min=1, max=inf` is assigned
 * To the optional set `min=0, max=inf` is assigned
+
+### Default password spec
+
+```
+/A-Z/a-z/0-9/^A-Za-z0-9/ -- At least one uppercase, one lowercase, one digit and one "special"
+```
+
+Most probably it will be possible to set it into a configuration file
+
+## How to generate passwords
+
+The algorithm for creating the password is as follows
+1. For any set with `min>0` extract `min` characters
+2. Merge together all the mandatory sets and the optional one
+3. Fill the number of characters with characters randomly taken from the resulting set
+4. Randomly permute the result
+
+This is guaranteed to work only if all the sets have `max=inf` which I believe it is fine.
+It is not entirely clear to me if the result is exactly uniform in the set of allowed password.
+
+### A better solution
+
+Maybe a better solution is the _rejection method_: draw randomly characters from the non-prohibited sets and check afterwards if it satisfies the constraints; if not do the drawing again. 
+
+What is the expected number of trials? If S1, S2, ..., Sn are the size of the non-prohibited sets and Pk=Sk/(S1+...+Sn) is the probability of getting a character from the k-th set, the probability of drawing a password that does not satisfy the constraints is smaller than
+```
+(1-P1)^L + (1-P2)^L + ... + (1-Pn)^L
+```
+where `L` is the password length. Since `(1-Pk)^L` is the probability of never extracting a character from the `k`-th set. For `L=8` and the default specs, the probability of not finding a password not satisfying the constraint is approximately 0.5, with `L=12` is approximately 0.25; therefore, we expect an average of two drawings for `L=8` and 1.4 for `L=12`. It is acceptable. Note that the expected number of drawing decreases with `L`
 
