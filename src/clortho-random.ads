@@ -1,8 +1,15 @@
+
 package Clortho.Random is
    type Random_Data is array (Positive range <>) of Positive;
 
+   --
+   --  Fill Data with integers between Min and Max randomly generated
+   --  using (if possible) a cryptographically strong source
+   --
    procedure Fill (Data : out Random_Data;
-                   Max  : Positive)
+                   Max  : Positive;
+                   Min  : Positive := 1)
      with
-       Post => (for all N of Data => (N >= 1 and N <= Max));
+       Pre => Max >= Min,
+       Post => (for all N of Data => (N >= Min and N <= Max));
 end Clortho.Random;
