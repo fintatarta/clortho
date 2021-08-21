@@ -1,4 +1,6 @@
 with "config/clortho_config.gpr";
+with "src/tokenizer/tokenizer.gpr";
+
 project Clortho is
 
    for Source_Dirs use ("src", "src/Linux_3_17");

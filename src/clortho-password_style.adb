@@ -1,68 +1,80 @@
 pragma Ada_2012;
-with Ada.Strings.Maps;
+with Ada.Strings.Maps.Constants;
+with Clortho.Password_Style.Utilities;
 
 package body Clortho.Password_Style is
 
-   subtype Set_Index is Positive;
+   procedure Parse_Simple_Spec (Input         : String;
+                                Set           : out Ada.Strings.Maps.Character_Set;
+                                Is_Prohibited : out Boolean);
 
-   type Set_Array is array (Set_Index range <>) of Ada.Strings.Maps.Character_Set;
-
-   type Set_Buffer (Length : Positive) is
-      record
-         Sets       : Set_Array (1 .. Length);
-         First_Free : Set_Index;
-         Cursor     : Set_Index;
-      end record;
-
-   procedure Append (To   : in out Set_Buffer;
-                     Item : Ada.Strings.Maps.Character_Set)
-     with
-       Pre => To.First_Free <= To.Sets'Last,
-       Post => To.First_Free = To.First_Free'Old + 1;
-
-   procedure Loop_Over (Buffer : in out Set_Buffer);
-
-   procedure Next (Buffer : in out Set_Buffer);
-
-   function Has_Element (Buffer : Set_Buffer) return Boolean;
-
-   function Current_Element (Buffer : Set_Buffer) return Ada.Strings.Maps.Character_Set
-     with
-       Pre => Has_Element (Buffer);
-
-   procedure Loop_Over (Buffer : in out Set_Buffer)
+   procedure Parse_Simple_Spec (Input         : String;
+                                Set           : out Ada.Strings.Maps.Character_Set;
+                                Is_Prohibited : out Boolean)
    is
    begin
-      Buffer.Cursor := Buffer.Sets'First;
-   end Loop_Over;
+      pragma Compile_Time_Warning (True, "Parse_Simple_Spec unimplemented");
+      raise Program_Error;
+   end Parse_Simple_Spec;
 
-   procedure Next (Buffer : in out Set_Buffer)
-   is
-   begin
-      Buffer.Cursor := Buffer.Cursor + 1;
-   end Next;
-
-   function Has_Element (Buffer : Set_Buffer) return Boolean
-   is (Buffer.Cursor < Buffer.First_Free);
-
-   function Current_Element (Buffer : Set_Buffer) return Ada.Strings.Maps.Character_Set
-   is (Buffer.Sets (Buffer.Cursor));
-
-   procedure Append (To   : in out Set_Buffer;
-                     Item : Ada.Strings.Maps.Character_Set)
-   is
-   begin
-      To.Sets (To.First_Free) := Item;
-      To.First_Free := To.First_Free + 1;
-   end Append;
    -----------
    -- Parse --
    -----------
 
    function Parse (Input : String) return Password_Conditions.Condition_Type is
+      use type Ada.Strings.Maps.Character_Set;
+      use Utilities;
+
+      Prohibited : Ada.Strings.Maps.Character_Set;
+      Mandatory : Set_Buffer (Input'Length);
+      Scanner : Input_Scanner := Create (Input);
+
+      Is_Prohibited : Boolean;
+      Set : Ada.Strings.Maps.Character_Set;
    begin
-      pragma Compile_Time_Warning (Standard.True, "Parse unimplemented");
-      return raise Program_Error with "Unimplemented function Parse";
+      while not End_Of_Input (Scanner) loop
+         Parse_Simple_Spec (Next_Segment (Scanner), Set, Is_Prohibited);
+
+         if Is_Prohibited then
+            Prohibited := Prohibited or Set;
+
+         else
+            Append (To   => Mandatory,
+                    Item => Set);
+         end if;
+      end loop;
+
+      declare
+         use Password_Conditions;
+         use Ada.Strings.Maps;
+
+         Result : Condition_Type := Create (Prohibited);
+      begin
+         Loop_Over (Mandatory);
+
+         while Has_Element (Mandatory) loop
+            Add_Condition (To  => Result,
+                           Set => Current_Element (Mandatory),
+                           Min => To_Limit (1),
+                           Max => Infinity);
+
+            Next (Mandatory);
+         end loop;
+
+         declare
+            Optional : constant Character_Set :=
+                         Constants.Graphic_Set
+                             and not (Allowed_Chars (Result) or Prohibited_Set (Result));
+         begin
+            Add_Condition (To  => Result,
+                           Set => Optional,
+                           Min => To_Limit (0),
+                           Max => Infinity);
+         end;
+
+         return Result;
+      end;
+
    end Parse;
 
 end Clortho.Password_Style;
