@@ -1,6 +1,10 @@
 with Ada.Strings.Fixed;
 
 package body Clortho.Password_Style.Utilities is
+   pragma SPARK_Mode;
+
+   function Length (Item : Segment_Scanner) return Positive
+   is (Item.Len);
 
    function Free_Space (Item : Set_Buffer) return Natural
    is (Item.Sets'Last - Item.First_Free + 1);
@@ -31,7 +35,7 @@ package body Clortho.Password_Style.Utilities is
       To.First_Free := To.First_Free + 1;
    end Append;
 
-   function Create (Input : String) return Input_Scanner
+   function Create (Input : String) return Segment_Scanner
    is
       Segment_Last : Natural;
    begin
@@ -61,27 +65,27 @@ package body Clortho.Password_Style.Utilities is
             Segment_Last := Core'Last;
          end if;
 
-         return Input_Scanner'(Len           => Core'Length,
+         return Segment_Scanner'(Len           => Core'Length,
                                Segment_First => 1,
                                Segment_Last  => Segment_Last - Core'First + 1,
                                Data          => Core);
       end;
    end Create;
 
-   function Current_Segment (Item : Input_Scanner) return String
+   function Current_Segment (Item : Segment_Scanner) return String
    is
    begin
       return Item.Data (Item.Segment_First .. Item.Segment_Last);
    end Current_Segment;
 
-   function End_Of_Input (Item : Input_Scanner) return Boolean
+   function End_Of_Input (Item : Segment_Scanner) return Boolean
    is (Item.Segment_First > Item.Data'Last);
 
    ------------------
    -- Next_Segment --
    ------------------
 
-   procedure Next_Segment (Item : in out Input_Scanner)
+   procedure Next_Segment (Item : in out Segment_Scanner)
    is
 
    begin

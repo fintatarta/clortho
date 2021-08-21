@@ -1,11 +1,12 @@
 with Ada.Strings.Maps;
 
-private package Clortho.Password_Style.Utilities is
+package Clortho.Password_Style.Utilities is
+   pragma SPARK_Mode;
 
    ----------------
    -- Set_Buffer --
    ----------------
-   type Set_Buffer (Length : Positive) is private;
+   type Set_Buffer is private;
 
    function Free_Space (Item : Set_Buffer) return Natural;
 
@@ -29,24 +30,31 @@ private package Clortho.Password_Style.Utilities is
    -- Scanner --
    -------------
 
-   type Input_Scanner (Len : Natural) is  private;
+   type Segment_Scanner (<>) is  private;
 
-   function Create (Input : String) return Input_Scanner
+   function Create (Input : String) return Segment_Scanner
      with
        Pre =>
-         Input'Length >= 3
+         (Input'Length >= 3 and Input'Length < Integer'Last)
          and then
            (Input (Input'First) = '/'
             and Input (Input'Last) = '/'
             and Input (Input'First + 1) /= '/'
-            and Input (Input'Last - 1) /= '/');
+            and Input (Input'Last - 1) /= '/'),
+           Post =>
+             Length (Create'Result) = Input'Length - 2;
 
-   function End_Of_Input (Item : Input_Scanner) return Boolean;
+   function End_Of_Input (Item : Segment_Scanner) return Boolean;
 
-   function Current_Segment (Item : Input_Scanner) return String
-     with Pre => not End_Of_Input (Item);
+   function Current_Segment (Item : Segment_Scanner) return String
+     with
+       Pre => not End_Of_Input (Item),
+       Post => Current_Segment'Result'Length <= Length (Item);
 
-   procedure Next_Segment (Item : in out Input_Scanner)
+   function Length (Item : Segment_Scanner) return Positive
+     with Post => Length'Result >= 1 and Length'Result < Integer'Last;
+
+   procedure Next_Segment (Item : in out Segment_Scanner)
      with Pre => not End_Of_Input (Item);
 
 private
@@ -54,14 +62,18 @@ private
 
    type Set_Array is array (Set_Index range <>) of Ada.Strings.Maps.Character_Set;
 
-   type Set_Buffer (Length : Positive) is
+   type Set_Buffer is
       record
-         Sets       : Set_Array (1 .. Length) := (others => Ada.Strings.Maps.Null_Set);
+         Sets       : Set_Array (1 .. 256) := (others => Ada.Strings.Maps.Null_Set);
          First_Free : Set_Index := 1;
          Cursor     : Set_Index := 1;
-      end record;
+      end record
+     with
+       Type_Invariant =>
+         First_Free <= Sets'Last + 1
+         and Cursor <= Sets'Last + 1;
 
-   type Input_Scanner (Len : Natural) is
+   type Segment_Scanner (Len : Positive) is
       record
          Segment_First  : Positive;
          Segment_Last   : Positive;
@@ -69,6 +81,6 @@ private
       end record
      with
        Type_Invariant =>
-         Input_Scanner.Segment_First <= Input_Scanner.Len + 1
-         and Input_Scanner.Segment_Last > Input_Scanner.Segment_First;
+         Segment_Scanner.Segment_First <= Segment_Scanner.Len + 1
+         and Segment_Scanner.Segment_Last > Segment_Scanner.Segment_First;
 end Clortho.Password_Style.Utilities;

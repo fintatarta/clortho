@@ -8,7 +8,9 @@ package body Clortho.Password_Style is
 
    procedure Parse_Simple_Spec (Input         : String;
                                 Set           : out Ada.Strings.Maps.Character_Set;
-                                Is_Prohibited : out Boolean);
+                                Is_Prohibited : out Boolean)
+     with
+       Pre => Input'Length < Integer'Last;
 
    procedure Parse_Simple_Spec (Input         : String;
                                 Set           : out Ada.Strings.Maps.Character_Set;
@@ -34,13 +36,17 @@ package body Clortho.Password_Style is
       Scanner : String_Scanners.Scanner_Type := String_Scanners.Create (Input);
       Complement_Result : Boolean;
 
-      procedure Check_If_Prohibited;
-      procedure Check_If_Complement;
+      procedure Check_If_Prohibited (Scanner       : in out Scanner_Type;
+                                     Is_Prohibited : out Boolean);
 
-      procedure Check_If_Prohibited
+      procedure Check_If_Complement (Scanner    : in out Scanner_Type;
+                                     Complement : out Boolean);
+
+      procedure Check_If_Prohibited (Scanner       : in out Scanner_Type;
+                                     Is_Prohibited : out Boolean)
       is
       begin
-         if Current_Char (Scanner) = '!' then
+         if not End_Of_Input  (Scanner) and then Current_Char (Scanner) = '!' then
             Is_Prohibited := True;
             Next (Scanner);
          else
@@ -48,21 +54,22 @@ package body Clortho.Password_Style is
          end if;
       end Check_If_Prohibited;
 
-      procedure Check_If_Complement
+      procedure Check_If_Complement (Scanner    : in out Scanner_Type;
+                                     Complement : out Boolean)
       is
       begin
-         if Current_Char (Scanner) = '^' then
-            Complement_Result := True;
+         if not End_Of_Input (Scanner) and then Current_Char (Scanner) = '^' then
+            Complement := True;
             Next (Scanner);
          else
-            Complement_Result := False;
+            Complement := False;
          end if;
       end Check_If_Complement;
    begin
       Set := Ada.Strings.Maps.Null_Set;
 
-      Check_If_Prohibited;
-      Check_If_Complement;
+      Check_If_Prohibited (Scanner, Is_Prohibited);
+      Check_If_Complement (Scanner, Complement_Result);
 
       while not End_Of_Input (Scanner) loop
          if Remaining (Scanner) >= 3 and then Peek_Ahead (Scanner) = '-' then
@@ -91,8 +98,8 @@ package body Clortho.Password_Style is
       use Utilities;
 
       Prohibited : Ada.Strings.Maps.Character_Set := Ada.Strings.Maps.Null_Set;
-      Mandatory  : Set_Buffer (Input'Length);
-      Scanner    : Input_Scanner := Create (Input);
+      Mandatory  : Set_Buffer;
+      Scanner    : Segment_Scanner := Create (Input);
 
       Is_Prohibited : Boolean;
       Set           : Ada.Strings.Maps.Character_Set;
