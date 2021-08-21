@@ -52,10 +52,9 @@ since in this case we require that at least one alphanumeric character is presen
 
 The syntax of the spec string is as follows
 ```
-  spec          = '/' (set-spec '/')+
-  set-spec      = option-list? char-or-range*
-  char-or-range = char ('-' char)
-  char          = "any character but '/'" | '//'
+  spec          = '/' set-spec ('//' set-spec)* '/'
+  set-spec      = option-list? !? ^? char-or-range*
+  char-or-range = char ('-' char)?
   option-list   = '::' option (',' option) '::'
   option        = name ('=' value-char*)?
   name          = [a-zA-Z-]+
