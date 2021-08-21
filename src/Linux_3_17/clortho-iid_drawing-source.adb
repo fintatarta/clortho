@@ -3,7 +3,7 @@ with Ada.Unchecked_Conversion;
 with Interfaces.C.Pointers;
 with GNAT.OS_Lib;
 
-package body Clortho.Random.Source is
+package body Clortho.IID_Drawing.Source is
    use Interfaces.C;
 
    ----------
@@ -56,4 +56,4 @@ package body Clortho.Random.Source is
 
       return To_Word (Buffer);
    end Random_Word;
-end Clortho.Random.Source;
+end Clortho.IID_Drawing.Source;

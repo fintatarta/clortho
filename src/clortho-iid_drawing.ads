@@ -1,5 +1,5 @@
 
-package Clortho.Random is
+package Clortho.IID_Drawing is
    type Random_Data is array (Positive range <>) of Positive;
 
    --
@@ -12,4 +12,4 @@ package Clortho.Random is
      with
        Pre => Max >= Min,
        Post => (for all N of Data => (N >= Min and N <= Max));
-end Clortho.Random;
+end Clortho.IID_Drawing;

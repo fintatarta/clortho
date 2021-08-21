@@ -1,8 +1,8 @@
 pragma Ada_2012;
-with Clortho.Random.Source;
+with Clortho.IID_Drawing.Source;
 with Ada.Numerics.Elementary_Functions;
 
-package body Clortho.Random is
+package body Clortho.IID_Drawing is
 
    ----------
    -- Fill --
@@ -61,15 +61,18 @@ package body Clortho.Random is
       use Ada.Numerics.Elementary_Functions;
 
       Alphabet_Size : constant Positive := Natural (Max) - Natural (Min) + 1;
+
       Alphabet_Bits : constant Float := Log (Float (Alphabet_Size), 2.0);
 
       Block_Size    : constant Positive :=
                         Positive (Float'Floor (Float (Word'Size) / Alphabet_Bits));
 
-      Useful_Bits   : constant Positive :=
-                        Positive (Float'Ceiling (Float (Block_Size) * Alphabet_Bits));
+      Number_of_blocks : constant Word := Word (Alphabet_Size) **  Block_Size;
 
-      Truncation_Modulus : constant Word := 2 ** Useful_Bits;
+      Bit_To_Keep   : constant Positive :=
+                        Positive (Float'Ceiling (Log (Float (Number_of_blocks), 2.0)));
+
+      Truncation_Modulus : constant Word := 2 ** Bit_To_Keep;
 
       subtype Block_Type is Random_Data (1 .. Block_Size);
 
@@ -100,13 +103,34 @@ package body Clortho.Random is
 
       procedure Refill (B : out Buffer_Type)
       is
+         W : Source.Word;
       begin
-         null;
+         loop
+            W := Source.Random_Word mod Truncation_Modulus;
+
+            exit when W < Number_of_blocks;
+         end loop;
+
+         pragma Assert (W < Number_of_blocks);
+
+         for I in B.Buffer'Range loop
+            --
+            --  Expansion of W in base Alphabet_Size
+            --
+            B.Buffer (I) := Natural (W mod Word (Alphabet_Size)) + Min;
+            W := W / Word (Alphabet_Size);
+
+            pragma
+              Loop_Invariant (W < Number_of_blocks / (Word (Alphabet_Size) ** (I - B.Buffer'First + 1)));
+         end loop;
+
+         pragma Assert (W = 0);
+
+         B.Cursor := B.Buffer'First;
       end Refill;
 
       Buffer        : Buffer_Type;
       Cursor   : Positive := Data'First;
-      Random_Word   : Source.Word;
    begin
       Refill (Buffer);
       while Cursor <= Data'Last loop
@@ -121,4 +145,4 @@ package body Clortho.Random is
       end loop;
    end Fill;
 
-end Clortho.Random;
+end Clortho.IID_Drawing;

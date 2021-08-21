@@ -9,8 +9,8 @@ with System;
 --  the body will differ, depending on the OS  Note that the specs are
 --  OS independent.
 --
-private package Clortho.Random.Source is
+private package Clortho.IID_Drawing.Source is
    type Word is mod System.Max_Binary_Modulus;
 
    function Random_Word return Word;
-end Clortho.Random.Source;
+end Clortho.IID_Drawing.Source;
