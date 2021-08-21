@@ -1,5 +1,5 @@
 package String_Scanners is
-   type Scanner_Type (<>) is tagged private;
+   type Scanner_Type (<>) is private;
    type Cursor_Type is private;
 
    function Create (Input : String) return Scanner_Type
@@ -10,7 +10,7 @@ package String_Scanners is
                         Amount  : Positive := 1)
                         return Character
      with
-       Pre => Scanner.Remaining >= Amount + 1;
+       Pre => Remaining (Scanner) >= Amount + 1;
 
    function Peek_Ahead (Scanner : Scanner_Type;
                         EOF     : Character;
@@ -45,7 +45,7 @@ package String_Scanners is
 private
    type Cursor_Type is range 1 .. Positive'Last;
 
-   type Scanner_Type (Length : Natural) is tagged
+   type Scanner_Type (Length : Natural) is
       record
          Data : String (1 .. Length);
          Cursor : Positive;

@@ -33,6 +33,7 @@ package body Clortho.Password_Style.Utilities is
 
    function Create (Input : String) return Input_Scanner
    is
+      Segment_Last : Natural;
    begin
       if Input'Length < 3
         or else
@@ -44,37 +45,80 @@ package body Clortho.Password_Style.Utilities is
          raise Parsing_Error;
       end if;
 
-      return Input_Scanner'(Len    => Input'Length - 2,
-                            Cursor => 1,
-                            Data   => Input (Input'First + 1 .. Input'Last - 1));
+      declare
+         Core : constant String :=  Input (Input'First + 1 .. Input'Last - 1);
+      begin
+         pragma Assert (Core (Core'First) /= '/');
+         pragma Assert (Core (Core'Last) /= '/');
+
+         Segment_Last := Ada.Strings.Fixed.Index (Source  => Core,
+                                                  Pattern => "//",
+                                                  From    => Core'First);
+
+         pragma Assert (Segment_Last /= Core'First);
+
+         if Segment_Last = 0 then
+            Segment_Last := Core'Last;
+         end if;
+
+         return Input_Scanner'(Len           => Core'Length,
+                               Segment_First => 1,
+                               Segment_Last  => Segment_Last - Core'First + 1,
+                               Data          => Core);
+      end;
    end Create;
 
-   function End_Of_Input (Item : Input_Scanner) return Boolean
-   is (Item.Cursor > Item.Data'Last);
-
-   function Next_Segment (Item : in out Input_Scanner) return String
+   function Current_Segment (Item : Input_Scanner) return String
    is
-      Break_At : constant Natural :=
-                   Ada.Strings.Fixed.Index (Source  => Item.Data,
-                                            Pattern => "//",
-                                            From    => Item.Cursor);
-
-      Start    : constant Positive := Item.Cursor;
    begin
-      if Break_At = Item.Cursor then
-         --  This means that the original input had something like ////, that
-         --  is an empty set.  This is not allowed.
-         raise Parsing_Error;
+      return Item.Data (Item.Segment_First .. Item.Segment_Last);
+   end Current_Segment;
 
-      elsif Break_At = 0 then
-         --  There is no // in the string. What remain is the segment
-         Item.Cursor := Item.Data'Last + 1;
-         return Item.Data (Start .. Item.Data'Last);
+   function End_Of_Input (Item : Input_Scanner) return Boolean
+   is (Item.Segment_First > Item.Data'Last);
 
-      else
-         Item.Cursor := Break_At + 2;
-         return Item.Data (Start .. Break_At - 1);
+   ------------------
+   -- Next_Segment --
+   ------------------
+
+   procedure Next_Segment (Item : in out Input_Scanner)
+   is
+
+   begin
+      if End_Of_Input (Item) then
+         raise Constraint_Error;
       end if;
+
+      if Item.Segment_Last = Item.Data'Last then
+         Item.Segment_First := Item.Data'Last + 1;
+         Item.Segment_Last := Item.Segment_First + 1;
+         return;
+      end if;
+
+      declare
+         New_Start : constant Positive := Item.Segment_Last + 3;
+
+         Break_At  : constant Natural :=
+                       Ada.Strings.Fixed.Index (Source  => Item.Data,
+                                                Pattern => "//",
+                                                From    => New_Start);
+      begin
+         if Break_At = New_Start then
+            --  This means that the original input had something like ////, that
+            --  is an empty set.  This is not allowed.
+            raise Parsing_Error;
+
+         elsif Break_At = 0 then
+            --  There is no // in the string. What remain is the segment
+            Item.Segment_First := New_Start;
+            Item.Segment_Last := Item.Data'Last;
+
+         else
+            Item.Segment_First := New_Start;
+            Item.Segment_Last := Break_At - 1;
+
+         end if;
+      end;
    end Next_Segment;
 
 end Clortho.Password_Style.Utilities;

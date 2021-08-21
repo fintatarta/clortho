@@ -4,6 +4,7 @@ with Clortho.Password_Style.Utilities;
 with String_Scanners;
 
 package body Clortho.Password_Style is
+   pragma SPARK_Mode;
 
    procedure Parse_Simple_Spec (Input         : String;
                                 Set           : out Ada.Strings.Maps.Character_Set;
@@ -14,6 +15,7 @@ package body Clortho.Password_Style is
                                 Is_Prohibited : out Boolean)
    is
       use Ada.Strings.Maps;
+      use String_Scanners;
 
       --
       --  A simple spec is a concatenation of atomic specs.  An atomic spec can be
@@ -38,9 +40,9 @@ package body Clortho.Password_Style is
       procedure Check_If_Prohibited
       is
       begin
-         if Scanner.Current_Char = '!' then
+         if Current_Char (Scanner) = '!' then
             Is_Prohibited := True;
-            Scanner.Next;
+            Next (Scanner);
          else
             Is_Prohibited := False;
          end if;
@@ -49,9 +51,9 @@ package body Clortho.Password_Style is
       procedure Check_If_Complement
       is
       begin
-         if Scanner.Current_Char = '^' then
+         if Current_Char (Scanner) = '^' then
             Complement_Result := True;
-            Scanner.Next;
+            Next (Scanner);
          else
             Complement_Result := False;
          end if;
@@ -62,17 +64,17 @@ package body Clortho.Password_Style is
       Check_If_Prohibited;
       Check_If_Complement;
 
-      while not Scanner.End_Of_Input loop
-         if Scanner.Remaining >= 3 and then Scanner.Peek_Ahead = '-' then
-            Set := Set or To_Set (Character_Range'(Low  => Scanner.Current_Char,
-                                                   High => Scanner.Peek_Ahead (2)));
-            Scanner.Next (3);
+      while not End_Of_Input (Scanner) loop
+         if Remaining (Scanner) >= 3 and then Peek_Ahead (Scanner) = '-' then
+            Set := Set or To_Set (Character_Range'(Low  => Current_Char (Scanner),
+                                                   High => Peek_Ahead (Scanner, 2)));
+            Next (Scanner, 3);
          else
-            Set := Set or To_Set (Scanner.Current_Char);
-            Scanner.Next;
+            Set := Set or To_Set (Current_Char (Scanner));
+            Next (Scanner);
          end if;
 
-         pragma Loop_Variant (Decreases => Scanner.Remaining);
+         pragma Loop_Variant (Decreases => Remaining (Scanner));
       end loop;
 
       if Complement_Result then
@@ -88,7 +90,7 @@ package body Clortho.Password_Style is
       use type Ada.Strings.Maps.Character_Set;
       use Utilities;
 
-      Prohibited : Ada.Strings.Maps.Character_Set;
+      Prohibited : Ada.Strings.Maps.Character_Set := Ada.Strings.Maps.Null_Set;
       Mandatory  : Set_Buffer (Input'Length);
       Scanner    : Input_Scanner := Create (Input);
 
@@ -96,7 +98,8 @@ package body Clortho.Password_Style is
       Set           : Ada.Strings.Maps.Character_Set;
    begin
       while not End_Of_Input (Scanner) loop
-         Parse_Simple_Spec (Next_Segment (Scanner), Set, Is_Prohibited);
+         Parse_Simple_Spec (Current_Segment (Scanner), Set, Is_Prohibited);
+         Next_Segment (Scanner);
 
          if Is_Prohibited then
             Prohibited := Prohibited or Set;

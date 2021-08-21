@@ -65,7 +65,7 @@ package body String_Scanners is
    procedure Next (Scanner : in out Scanner_Type;
                    Amount  : Positive := 1) is
    begin
-      if Scanner.Remaining < Amount then
+      if Remaining (Scanner) < Amount then
          Scanner.Cursor := Scanner.Data'Last + 1;
       else
          Scanner.Cursor := Scanner.Cursor + Amount;
