@@ -1,5 +1,9 @@
 pragma Ada_2012;
+with Ada.Text_IO; use Ada.Text_IO;
+with Ada.Strings.Maps; use Ada.Strings.Maps;
 package body Clortho.Password_Conditions is
+   pragma SPARK_Mode;
+
 
    ------------
    -- Create --
@@ -22,7 +26,7 @@ package body Clortho.Password_Conditions is
    function Allowed_Chars
      (Condition : Condition_Type) return Strings.Maps.Character_Set
    is
-      Result : Strings.Maps.Character_Set;
+      Result : Strings.Maps.Character_Set := Null_Set;
    begin
       for I in Condition.Elementary_Conditions'First .. Condition.First_Free - 1 loop
          Result := Result or Condition.Elementary_Conditions (I).Set;
@@ -97,6 +101,9 @@ package body Clortho.Password_Conditions is
                             Set : Strings.Maps.Character_Set)
    is
    begin
+      Put_Line ("[[" & To_Sequence (Set) & "]]");
+      Put_Line ("<<" & To_Sequence (Allowed_Chars (To)) & ">>");
+
       Add_Condition (To  => To,
                      Set => Set,
                      Min => To_Limit (1),
@@ -125,7 +132,6 @@ package body Clortho.Password_Conditions is
                    Condition : Condition_Type)
                    return Boolean
    is
-      use Ada.Strings.Maps;
 
       Char_To_Id_Map : array (Character) of Extended_Condition_ID := (others => No_Id);
 

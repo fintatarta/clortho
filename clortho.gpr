@@ -1,5 +1,6 @@
 with "config/clortho_config.gpr";
 with "src/tokenizer/tokenizer.gpr";
+with "src/finite-automata/automata_scan.gpr";
 
 project Clortho is
 

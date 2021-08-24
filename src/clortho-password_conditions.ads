@@ -3,6 +3,8 @@ with Ada.Strings.Maps;
 use Ada;
 
 package Clortho.Password_Conditions is
+   pragma SPARK_Mode;
+
    use type Ada.Strings.Maps.Character_Set;
 
    type Condition_Type is private;

@@ -1,38 +1,10 @@
 pragma Ada_2012;
+with Ada.Text_IO; use Ada.Text_IO;
 with Password_Style_Scanner;
 with Ada.Strings.Unbounded;
 with Ada.Strings.Maps.Constants;
 
 package body Password_Style_Parsers is
-
-   package Saving_Buffer is
-      Buffer : Character;
-      Full   : Boolean := False;
-
-      procedure Save (C : Character)
-        with
-          Pre => not Full, Post => Full;
-
-      pragma Warnings (Off, "postcondition does not mention function result");
-      function Get return Character
-        with
-          Pre => Full, Post => not Full;
-   end Saving_Buffer;
-
-   package body Saving_Buffer is
-      procedure Save (C : Character) is
-      begin
-         Buffer := C;
-         Full := True;
-      end Save;
-
-      function Get return Character
-      is
-      begin
-         Full := False;
-         return Buffer;
-      end Get;
-   end Saving_Buffer;
 
    -----------
    -- Parse --
@@ -41,6 +13,40 @@ package body Password_Style_Parsers is
    function Parse (Input : String) return Password_Style_Descriptor is
       use Password_Style_Scanner;
       use type Ada.Strings.Maps.Character_Set;
+
+      package Saving_Buffer is
+         Buffer : Character;
+         Full   : Boolean := False;
+
+         procedure Save (C : Character)
+           with
+             Pre => not Full, Post => Full;
+
+         pragma Warnings (Off, "postcondition does not mention function result");
+         function Get return Character
+           with
+             Pre => Full, Post => not Full;
+      end Saving_Buffer;
+
+      package body Saving_Buffer is
+         procedure Save (C : Character) is
+         begin
+            Buffer := C;
+            Full := True;
+         end Save;
+
+         function Get return Character
+         is
+         begin
+            Full := False;
+            return Buffer;
+         end Get;
+      end Saving_Buffer;
+
+      function Count_Slashes (Input : String) return Positive;
+      procedure Add_To_Mandatory (Set : Ada.Strings.Maps.Character_Set);
+      function Mandatory_Sets return Set_Array;
+      procedure Add_To_Prohibited (X : Ada.Strings.Maps.Character_Set);
 
       function Count_Slashes (Input : String) return Positive
       is
@@ -62,7 +68,7 @@ package body Password_Style_Parsers is
       Scanner : Scanning.Automata_Type := New_Password_Style_Scanner;
 
       Prohibited : Ada.Strings.Maps.Character_Set := Ada.Strings.Maps.Null_Set;
-      Mandatory : Set_Array (1 .. Count_Slashes (Input));
+      Mandatory  : Set_Array (1 .. Count_Slashes (Input));
       First_Free : Positive := Mandatory'First;
 
       procedure Add_To_Mandatory (Set : Ada.Strings.Maps.Character_Set) is
@@ -93,6 +99,13 @@ package body Password_Style_Parsers is
          Buffer       : Character_Set := Ada.Strings.Maps.Null_Set;
          Prohibited   : Boolean := False;
          Complemented : Boolean := False;
+
+         procedure Add_Single_Char (C : Character);
+         procedure Add_Range (From, To : Character);
+         procedure Reset_Builder;
+         procedure Mark_As_Prohibited;
+         procedure Mark_As_Complemented;
+         procedure Close_Current_Set;
 
          procedure Add_Single_Char (C : Character)
          is
@@ -185,7 +198,7 @@ package body Password_Style_Parsers is
          end loop;
       end;
 
-      return Password_Style_Descriptor'(N_Sets     => First_Free-1,
+      return Password_Style_Descriptor'(N_Sets     => First_Free  - 1,
                                         Prohibited => Prohibited,
                                         Mandatory  => Mandatory_Sets);
    end Parse;
@@ -238,19 +251,22 @@ package body Password_Style_Parsers is
       use Ada.Strings.Maps;
    begin
       for I in Descr.Mandatory'Range loop
+         Put_Line (I'Image & ": " & To_Sequence (Descr.Mandatory (I)));
          if (Descr.Mandatory (I) and Descr.Prohibited) /= Null_Set then
+            Put_Line ("!!!" & To_Sequence (Descr.Prohibited));
+
             return False;
          end if;
 
          for J in I + 1 .. Descr.Mandatory'Last loop
             if (Descr.Mandatory (I) and Descr.Prohibited) /= Null_Set then
-            return False;
+               Put_Line ("!!!" & J'Image & ": " & To_Sequence (Descr.Mandatory (J)));
+               return False;
             end if;
          end loop;
       end loop;
 
       return True;
    end Is_Valid;
-
 
 end Password_Style_Parsers;

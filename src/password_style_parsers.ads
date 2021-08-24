@@ -9,7 +9,7 @@ package Password_Style_Parsers is
          Mandatory  : Set_Array (1 .. N_Sets);
       end record;
 
-   -- Parse the input string and return the password style descriptor
+   --  Parse the input string and return the password style descriptor
    function Parse (Input : String) return Password_Style_Descriptor;
 
    --  Create a string representation of the descriptor. Mostly useful for debug.

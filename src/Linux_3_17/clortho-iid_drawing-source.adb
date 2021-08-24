@@ -33,7 +33,8 @@ package body Clortho.IID_Drawing.Source is
       type Ssize_T is range -size_t'Modulus / 2 .. size_t'Modulus / 2 - 1;
 
       function Get_Random (Buffer : Byte_Pointers.Pointer;
-                           Length : size_t)
+                           Length : size_t;
+                           Flags  : unsigned)
                            return Ssize_T
         with Import, Convention => C,  External_Name => "getrandom";
 
@@ -42,7 +43,8 @@ package body Clortho.IID_Drawing.Source is
       Buffer        : Word_Buffer;
    begin
       Err := Get_Random (Byte_Pointers.Pointer'(Buffer (Buffer'First)'Access),
-                         Buffer'Length);
+                         Buffer'Length,
+                         0);
 
       if Err < 0 then
          raise Constraint_Error with GNAT.OS_Lib.Errno_Message;

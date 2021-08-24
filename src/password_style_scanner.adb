@@ -22,13 +22,11 @@ package body Password_Style_Scanner is
                           Default_Target => Maybe_Range,
                           Default_Action => Save_Char);
 
-
          Add_Transitions (Automata       => Scanner,
                           From           => Maybe_Complement,
                           Edges          => (1 => E ('?', Segment_Body, Complement_Set)),
                           Default_Target => Maybe_Range,
                           Default_Action => Save_Char);
-
 
          Add_Transitions (Automata       => Scanner,
                           From           => Segment_Body,
@@ -44,7 +42,6 @@ package body Password_Style_Scanner is
                           Default_Action => Close_Set,
                           Default_Ungetc => True);
 
-
          Add_Transitions (Automata       => Scanner,
                           From           => Maybe_Range,
                           Edges          => (E ('-', After_Dash, Nothing),
@@ -55,7 +52,6 @@ package body Password_Style_Scanner is
          On_End_Of_Input (Automata    => Scanner,
                           Final_State => One_Slash,
                           Action      => End_Of_Parsing);
-
 
          Default_Transition (Automata => Scanner,
                              From     => After_Dash,

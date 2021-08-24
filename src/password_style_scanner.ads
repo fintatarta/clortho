@@ -1,7 +1,7 @@
 with Automata_Scan;
 
 package Password_Style_Scanner is
- type State_Type is
+   type State_Type is
      (
       Start,
       Segment_Head,

@@ -10,10 +10,6 @@ package body Clortho.Password_Style is
    -- Parse --
    -----------
 
-   -----------
-   -- Parse --
-   -----------
-
    function Parse (Input       : String;
                    Missing_Are : Missing_Option)
                    return Password_Conditions.Condition_Type
@@ -22,7 +18,7 @@ package body Clortho.Password_Style is
       --  use Utilities;
       use Password_Style_Parsers;
 
-      Prohibited_Chars : Ada.Strings.Maps.Character_Set := Ada.Strings.Maps.Null_Set;
+      Prohibited_Chars : Ada.Strings.Maps.Character_Set;
       Optional_Chars   : Ada.Strings.Maps.Character_Set := Ada.Strings.Maps.Null_Set;
 
       Sets          : constant Password_Style_Descriptor := Parse (Input);

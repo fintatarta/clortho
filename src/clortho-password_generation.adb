@@ -4,14 +4,15 @@ with Ada.Strings.Maps;
 with Clortho.IID_Drawing;
 
 package body Clortho.Password_Generation is
+   pragma SPARK_Mode;
 
    ------------------
    -- Get_Password --
    ------------------
 
-   function Get_Password
-     (Length : Positive; Constraint : Password_Conditions.Condition_Type)
-      return String
+   function Get_Password (Length     : Positive;
+                          Constraint : Password_Conditions.Condition_Type)
+                          return String
    is
       use Ada.Strings.Maps;
       use Password_Conditions;
@@ -29,10 +30,10 @@ package body Clortho.Password_Generation is
             Result (I) := Valid_Charset (Buffer (I));
          end loop;
 
-         if Password_Conditions.Match (Result, Constraint) then
-            return Result;
-         end if;
+         exit when Password_Conditions.Match (Result, Constraint);
       end loop;
+
+      return Result;
    end Get_Password;
 
 end Clortho.Password_Generation;
