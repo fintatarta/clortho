@@ -89,6 +89,34 @@ package body Clortho.Password_Conditions is
       To.First_Free := To.First_Free + 1;
    end Add_Condition;
 
+   -------------------
+   -- Add_Mandatory --
+   -------------------
+
+   procedure Add_Mandatory (To  : in out Condition_Type;
+                            Set : Strings.Maps.Character_Set)
+   is
+   begin
+      Add_Condition (To  => To,
+                     Set => Set,
+                     Min => To_Limit (1),
+                     Max => Infinity);
+   end Add_Mandatory;
+
+   ------------------
+   -- Add_Optional --
+   ------------------
+
+   procedure Add_Optional (To  : in out Condition_Type;
+                           Set : Strings.Maps.Character_Set)
+   is
+   begin
+      Add_Condition (To  => To,
+                     Set => Set,
+                     Min => To_Limit (0),
+                     Max => Infinity);
+   end Add_Optional;
+
    -----------
    -- Match --
    -----------
@@ -164,7 +192,7 @@ package body Clortho.Password_Conditions is
    is
    begin
       for I in Elementary'First .. Free - 1 loop
-         -- Every element in the first segment must be a valid one with a non empty set
+         --  Every element in the first segment must be a valid one with a non empty set
          if
            Elementary (I).Set = Ada.Strings.Maps.Null_Set
            or Elementary (I).Min = Infinity
@@ -173,13 +201,13 @@ package body Clortho.Password_Conditions is
             return False;
          end if;
 
-         -- The set must have no intersection with the prohibited set
+         --  The set must have no intersection with the prohibited set
          if (Prob and Elementary (I).Set) /= Ada.Strings.Maps.Null_Set then
             return False;
          end if;
 
          for J in I + 1 .. Free - 1 loop
-            -- No intersection with the other sets
+            --  No intersection with the other sets
             if (Elementary (J).Set and Elementary (I).Set) /= Ada.Strings.Maps.Null_Set then
                return False;
             end if;
@@ -187,7 +215,7 @@ package body Clortho.Password_Conditions is
       end loop;
 
       for I in Free .. Elementary'Last loop
-         -- The unused segment must contain only bogus conditions
+         --  The unused segment must contain only bogus conditions
          if
            Elementary (I).Set /= Ada.Strings.Maps.Null_Set
            or Elementary (I).Min /= Infinity
@@ -196,7 +224,7 @@ package body Clortho.Password_Conditions is
          end if;
       end loop;
 
-      -- Passed all the checks!  Yeah!
+      --  Passed all the checks!  Yeah!
       return True;
    end Is_Valid;
 

@@ -24,6 +24,9 @@ package Clortho.Password_Conditions is
 
    function To_Limit (N : Repetition_Count) return Repetition_Limit;
 
+   function "+" (N : Repetition_Count) return Repetition_Limit
+                 renames To_Limit;
+
    function "<=" (X, Y : Repetition_Limit) return Boolean;
 
    Infinity : constant Repetition_Limit;
@@ -40,12 +43,18 @@ package Clortho.Password_Conditions is
          Post =>
            (Set and not Prohibited_Set (To)) = (Set and not Prohibited_Set (To) and Allowed_Chars (To));
 
+   procedure Add_Mandatory (To  : in out Condition_Type;
+                            Set : Strings.Maps.Character_Set);
+
+   procedure Add_Optional (To  : in out Condition_Type;
+                           Set : Strings.Maps.Character_Set);
+
    function Match (Item      : String;
                    Condition : Condition_Type)
                    return Boolean;
 
-   Bad_Limits : exception;
-   Condition_Full : exception;
+   Bad_Limits      : exception;
+   Condition_Full  : exception;
    Not_A_Partition : exception;
 
 private

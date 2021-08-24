@@ -1,0 +1,18 @@
+digraph fsa {
+  K=1
+  splines=true
+  start -> head [label="/"]
+  head  -> maybe_comp [label="!"]
+  head  -> core [label="?"]
+  head  -> maybe_range [label=default]
+  maybe_comp -> core [label="?"]
+  maybe_comp -> maybe_range [label=default]
+  core  -> one_slash [label="/"]
+  core  -> core [label="-"]
+  core  -> maybe_range [label="default"]
+  one_slash -> maybe_range [label="default, unget"]
+  one_slash -> head [label="/"]
+  maybe_range -> in_range [label="-"]
+  maybe_range -> maybe_range [label="default"]
+  in_range    -> core [label="default"]
+}
