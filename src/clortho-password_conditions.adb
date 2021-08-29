@@ -4,7 +4,6 @@ with Ada.Strings.Maps; use Ada.Strings.Maps;
 package body Clortho.Password_Conditions is
    pragma SPARK_Mode;
 
-
    ------------
    -- Create --
    ------------
