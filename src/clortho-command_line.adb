@@ -225,8 +225,63 @@ package body Clortho.Command_Line is
          end;
       end Next_Option;
 
+      function Double_Action return Parsed_CLI;
+      function Double_Password return Parsed_CLI;
+      function Double_Password_Length return Parsed_CLI;
+      function Double_Specs return Parsed_CLI;
+
+      function Bad_Integer (X : Unbounded_String) return Parsed_CLI;
+
+      procedure Parse (Input : String;
+                       Value : out Positive;
+                       OK    : out Boolean);
+
+      function Double_Action return Parsed_CLI
+      is (Parsed_CLI'(Status          => Double_Action,
+                      Name_Length     => 0,
+                      Password_Length => 0,
+                      Explanation     => ""));
+
+      function Bad_Integer (X : Unbounded_String) return Parsed_CLI
+      is (Parsed_CLI'(Status          => Bad_Integer,
+                      Name_Length     => Length (X),
+                      Password_Length => 0,
+                      Explanation     => To_String (X)));
+
+      function Double_Password return Parsed_CLI
+      is (Parsed_CLI'(Status          => Double_Password,
+                      Name_Length     => 0,
+                      Password_Length => 0,
+                      Explanation     => ""));
+
+      function Double_Specs return Parsed_CLI
+      is (Parsed_CLI'(Status          => Double_Specs,
+                      Name_Length     => 0,
+                      Password_Length => 0,
+                      Explanation     => ""));
+
+      function Double_Password_Length return Parsed_CLI
+      is (Parsed_CLI'(Status          => Double_Password_Length,
+                      Name_Length     => 0,
+                      Password_Length => 0,
+                      Explanation     => ""));
+
+      procedure Parse (Input : String;
+                       Value : out Positive;
+                       OK    : out Boolean)
+      is
+      begin
+         OK := (for all C of Input => C in '0' .. '9');
+         if OK then
+            Value := Positive'Value (Input);
+         else
+            Value := 1;
+         end if;
+      end Parse;
+
       No_User_Password : constant Unbounded_String := Null_Unbounded_String;
       No_Password_Len : constant Natural := 0;
+      No_Specs : constant Unbounded_String := Null_Unbounded_String;
 
       Cursor : Positive;
       Option : Option_Symbol;
@@ -235,9 +290,11 @@ package body Clortho.Command_Line is
       To_Do : Command_Type := Get_Password;
       Back_Step : Natural := 0;
       Password_Len : Natural := No_Password_Len;
-      Password_Bits : Natural := No_Password_Len;
+      Password_N_Bits : Natural := No_Password_Len;
       User_Provided_Password : Unbounded_String := No_User_Password;
       Output_Target : Target_Name := Clipboard;
+      Specs : Unbounded_String := No_Specs;
+      Use_Standard_Input : Boolean := False;
    begin
       Start_Option_Scanning (Cursor);
 
@@ -266,7 +323,7 @@ package body Clortho.Command_Line is
                   declare
                      OK : Boolean;
                   begin
-                     Parse (Parameter, Back_Step, OK);
+                     Parse (To_String (Parameter), Back_Step, OK);
 
                      if not OK then
                         return Bad_Integer (Parameter);
@@ -324,10 +381,10 @@ package body Clortho.Command_Line is
                   return Double_Password;
                end if;
 
-
             when Password_Length =>
                if
-                 Password_Len /= No_Password_Len or Password_Bits /= No_Password_Len
+                 Password_Len /= No_Password_Len
+                 or Password_N_Bits /= No_Password_Len
                then
                   return Double_Password_Length;
                end if;
@@ -335,7 +392,7 @@ package body Clortho.Command_Line is
                declare
                   OK : Boolean;
                begin
-                  Parse (Parameter, Password_Len, OK);
+                  Parse (To_String (Parameter), Password_Len, OK);
 
                   if not OK or else Password_Len = 0 then
                      return Bad_Integer (Parameter);
@@ -344,7 +401,8 @@ package body Clortho.Command_Line is
 
             when Password_Bits =>
                if
-                 Password_Len /= No_Password_Len or Password_Bits /= No_Password_Len
+                 Password_Len /= No_Password_Len
+                 or Password_N_Bits /= No_Password_Len
                then
                   return Double_Password_Length;
                end if;
@@ -352,24 +410,29 @@ package body Clortho.Command_Line is
                declare
                   OK : Boolean;
                begin
-                  Parse (Parameter, Password_Bits, OK);
+                  Parse (To_String (Parameter), Password_N_Bits, OK);
 
-                  if not OK or else Password_Bits = 0 then
+                  if not OK  then
                      return Bad_Integer (Parameter);
                   end if;
                end;
 
             when Password_Spec =>
-               Specs := Password_Style_Parsers.Parse (To_String (Parameter));
+               if Specs /= No_Specs then
+                  return Double_Specs;
+               end if;
+
+               Specs := Parameter;
 
             when Input =>
-               null;
+               Use_Standard_Input := True;
 
             when Output =>
-               null;
+               Output_Target := Standard_Output;
 
             when Filter  =>
-               null;
+               Use_Standard_Input := True;
+               Output_Target := Standard_Output;
 
             when Unknown_Option =>
                return Parsed_CLI'(Status          => Unknown_Option,

@@ -91,7 +91,12 @@ private
       Unknown_Option,
       Missing_Parameter,
       Unrequested_Parameter,
-      Bad_Option_Syntax
+      Bad_Option_Syntax,
+      Double_Action,
+      Bad_Integer,
+      Double_Password,
+      Double_Password_Length,
+      Double_Specs
      );
 
    type Parsed_CLI (Status          : Error_Status;
@@ -106,10 +111,7 @@ private
                Target        : Target_Name;
                Specs         : Password_Conditions.Condition_Type;
 
-            when Unknown_Option        |
-                 Missing_Parameter     |
-                 Unrequested_Parameter |
-                 Bad_Option_Syntax =>
+            when Unknown_Option .. Double_Specs =>
                Explanation   : String (1 .. Name_Length);
 
          end case;
