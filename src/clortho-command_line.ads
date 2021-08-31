@@ -28,7 +28,6 @@ package Clortho.Command_Line is
       Clipboard
      );
 
-
    type Parsed_CLI (<>) is private;
 
    function Parse_Command_Line return Parsed_CLI;
@@ -84,5 +83,19 @@ package Clortho.Command_Line is
          and then Command (Item) in Password_Writing_Command;
 
 private
-   type Parsed_CLI is null record;
+   type Error_Status is (Ok);
+
+   type Parsed_CLI (Status          : Error_Status;
+                    Name_Length     : Positive;
+                    Password_Length : Positive)  is
+      record
+         case Status is
+            when Ok =>
+               Name          : String (1 .. Name_Length);
+               User_Password : String (1 .. Password_Length);
+               Command       : Command_Type;
+               Target        : Target_Name;
+               Specs         : Password_Conditions.Condition_Type;
+         end case;
+      end record;
 end Clortho.Command_Line;
