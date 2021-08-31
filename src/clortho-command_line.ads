@@ -5,6 +5,7 @@ package Clortho.Command_Line is
    type Command_Type is
      (
       Get_Password,
+      Get_Old_Password,
       Create_Entry,
       Renew_Password,
       Vacuum_Entry,
@@ -83,11 +84,19 @@ package Clortho.Command_Line is
          and then Command (Item) in Password_Writing_Command;
 
 private
-   type Error_Status is (Ok);
+
+   type Error_Status is
+     (
+      Ok,
+      Unknown_Option,
+      Missing_Parameter,
+      Unrequested_Parameter,
+      Bad_Option_Syntax
+     );
 
    type Parsed_CLI (Status          : Error_Status;
-                    Name_Length     : Positive;
-                    Password_Length : Positive)  is
+                    Name_Length     : Natural;
+                    Password_Length : Natural)  is
       record
          case Status is
             when Ok =>
@@ -96,6 +105,13 @@ private
                Command       : Command_Type;
                Target        : Target_Name;
                Specs         : Password_Conditions.Condition_Type;
+
+            when Unknown_Option        |
+                 Missing_Parameter     |
+                 Unrequested_Parameter |
+                 Bad_Option_Syntax =>
+               Explanation   : String (1 .. Name_Length);
+
          end case;
       end record;
 end Clortho.Command_Line;

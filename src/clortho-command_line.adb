@@ -3,6 +3,8 @@ with Ada.Command_Line;
 with Ada.Strings.Unbounded;  use Ada.Strings.Unbounded;
 with Ada.Strings.Fixed;
 
+with Password_Style_Parsers;
+
 package body Clortho.Command_Line is
    pragma SPARK_Mode;
 
@@ -17,16 +19,15 @@ package body Clortho.Command_Line is
       Full_Vacuum,
       Create,
       Renew,
+      Delete,
+      Roll_Back,
       User_Password,
       Password_Length,
       Password_Bits,
       Password_Spec,
-      Roll_Back,
-      Delete,
       Input,
       Output,
       Filter,
-      Non_Url_Matching,
       End_Of_Options,
       Unknown_Option,
       Missing_Parameter,
@@ -34,7 +35,7 @@ package body Clortho.Command_Line is
       Bad_Option_Syntax
      );
 
-   subtype Error is Option_Symbol range Unknown_Option .. Bad_Option_Syntax;
+   --   subtype Error is Option_Symbol range Unknown_Option .. Bad_Option_Syntax;
 
    Need_Parameter : constant array (Option_Symbol) of Boolean :=
                       (
@@ -53,7 +54,6 @@ package body Clortho.Command_Line is
                        Input                 => False,
                        Output                => False,
                        Filter                => False,
-                       Non_Url_Matching      => False,
                        End_Of_Options        => False,
                        Unknown_Option        => False,
                        Missing_Parameter     => False,
@@ -87,15 +87,12 @@ package body Clortho.Command_Line is
                 (+"undo", Roll_Back),
                 (+"delete-full-entry", Delete),
                 (+"in", Input),
-                (+"i", Input),
                 (+"out", Output),
-                (+"o", Output),
                 (+"filter", Filter),
                 (+"in-out", Filter),
-                (+"inout", Filter),
-                (+"f", Filter),
-                (+"not-smart", Non_Url_Matching),
-                (+"strict", Non_Url_Matching)
+                (+"inout", Filter)
+                --  (+"not-smart", Non_Url_Matching),
+                --  (+"strict", Non_Url_Matching)
                );
 
    ------------------------
@@ -228,20 +225,176 @@ package body Clortho.Command_Line is
          end;
       end Next_Option;
 
+      No_User_Password : constant Unbounded_String := Null_Unbounded_String;
+      No_Password_Len : constant Natural := 0;
+
       Cursor : Positive;
       Option : Option_Symbol;
       Parameter : Unbounded_String;
+
+      To_Do : Command_Type := Get_Password;
+      Back_Step : Natural := 0;
+      Password_Len : Natural := No_Password_Len;
+      Password_Bits : Natural := No_Password_Len;
+      User_Provided_Password : Unbounded_String := No_User_Password;
+      Output_Target : Target_Name := Clipboard;
    begin
       Start_Option_Scanning (Cursor);
 
       loop
          Next_Option (Cursor, Option, Parameter);
 
-         case Option is
-            when Error | End_Of_Options =>
-               exit;
+         exit when Option = End_Of_Options;
 
-            when others =>
+         case Option is
+            when Old =>
+               if To_Do /= Get_Password then
+                  return Double_Action;
+
+               else
+                  To_Do := Get_Old_Password;
+                  Back_Step := 1;
+
+               end if;
+
+            when Back =>
+               if To_Do /= Get_Password then
+                  return Double_Action;
+
+               else
+                  To_Do := Get_Old_Password;
+                  declare
+                     OK : Boolean;
+                  begin
+                     Parse (Parameter, Back_Step, OK);
+
+                     if not OK then
+                        return Bad_Integer (Parameter);
+                     end if;
+                  end;
+
+               end if;
+
+            when Create =>
+               if To_Do /= Get_Password then
+                  return Double_Action;
+               else
+                  To_Do := Create_Entry;
+               end if;
+
+            when Renew =>
+               if To_Do /= Get_Password then
+                  return Double_Action;
+               else
+                  To_Do := Renew_Password;
+               end if;
+
+            when Vacuum =>
+               if To_Do /= Get_Password then
+                  return Double_Action;
+               else
+                  To_Do := Vacuum_Entry;
+               end if;
+
+            when Full_Vacuum =>
+               if To_Do /= Get_Password then
+                  return Double_Action;
+               else
+                  To_Do := Vacuum_All;
+               end if;
+
+            when Delete =>
+               if To_Do /= Get_Password then
+                  return Double_Action;
+               else
+                  To_Do := Delete_Entry;
+               end if;
+
+            when Roll_Back =>
+               if To_Do /= Get_Password then
+                  return Double_Action;
+               else
+                  To_Do := Roll_Back_Entry;
+               end if;
+
+            when  User_Password =>
+               if User_Provided_Password = No_User_Password then
+                  User_Provided_Password := Parameter;
+               else
+                  return Double_Password;
+               end if;
+
+
+            when Password_Length =>
+               if
+                 Password_Len /= No_Password_Len or Password_Bits /= No_Password_Len
+               then
+                  return Double_Password_Length;
+               end if;
+
+               declare
+                  OK : Boolean;
+               begin
+                  Parse (Parameter, Password_Len, OK);
+
+                  if not OK or else Password_Len = 0 then
+                     return Bad_Integer (Parameter);
+                  end if;
+               end;
+
+            when Password_Bits =>
+               if
+                 Password_Len /= No_Password_Len or Password_Bits /= No_Password_Len
+               then
+                  return Double_Password_Length;
+               end if;
+
+               declare
+                  OK : Boolean;
+               begin
+                  Parse (Parameter, Password_Bits, OK);
+
+                  if not OK or else Password_Bits = 0 then
+                     return Bad_Integer (Parameter);
+                  end if;
+               end;
+
+            when Password_Spec =>
+               Specs := Password_Style_Parsers.Parse (To_String (Parameter));
+
+            when Input =>
+               null;
+
+            when Output =>
+               null;
+
+            when Filter  =>
+               null;
+
+            when Unknown_Option =>
+               return Parsed_CLI'(Status          => Unknown_Option,
+                                  Name_Length     => Argument (Cursor)'Length,
+                                  Password_Length => 0,
+                                  Explanation     => Argument (Cursor));
+            when Missing_Parameter =>
+               return Parsed_CLI'(Status          => Missing_Parameter,
+                                  Name_Length     => Argument (Cursor)'Length,
+                                  Password_Length => 0,
+                                  Explanation     => Argument (Cursor));
+
+            when Unrequested_Parameter =>
+               return Parsed_CLI'(Status          => Unrequested_Parameter,
+                                  Name_Length     => Argument (Cursor)'Length,
+                                  Password_Length => 0,
+                                  Explanation     => Argument (Cursor));
+
+            when Bad_Option_Syntax =>
+               return Parsed_CLI'(Status          => Unknown_Option,
+                                  Name_Length     => Argument (Cursor)'Length,
+                                  Password_Length => 0,
+                                  Explanation     => Argument (Cursor));
+
+            when End_Of_Options =>
                null;
          end case;
       end loop;
