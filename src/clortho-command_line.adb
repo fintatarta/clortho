@@ -2,6 +2,9 @@ pragma Ada_2012;
 with Ada.Command_Line;
 with Ada.Strings.Unbounded;  use Ada.Strings.Unbounded;
 with Ada.Strings.Fixed;
+with Ada.Text_IO;
+
+with Clortho.Clipboard;
 
 with Password_Style_Parsers;
 
@@ -464,49 +467,48 @@ package body Clortho.Command_Line is
       end loop;
 
       declare
-         type Result_Type is (Name_Found, No_Name_Found, Error);
+         type Result_Type is (Name_Found, No_Name_Found, Name_Error);
 
-         type Foo (Length : Positive;
+         type Foo (Length : Natural;
                    Error  : Result_Type) is
             record
                case Error is
                   when Name_Found =>
                      Name : String (1 .. Length);
 
-                  when No_Name_Found | Error =>
+                  when No_Name_Found | Name_Error =>
                      null;
                end case;
             end record;
 
-         function Get_Name (Cursor             : Positive;
-                            On_Cli_Only        : Boolean;
-                            Use_Standard_Input : Boolean)
+         function Get_Name (Cursor               : Positive;
+                            On_Command_Line_Only : Boolean;
+                            Use_Standard_Input   : Boolean)
                             return Foo;
 
-
-         function Get_Name (Cursor             : Positive;
-                            On_Cli_Only        : Boolean;
-                            Use_Standard_Input : Boolean)
+         function Get_Name (Cursor               : Positive;
+                            On_Command_Line_Only : Boolean;
+                            Use_Standard_Input   : Boolean)
                             return Foo
          is
          begin
             if Cursor < Argument_Count then
-               return Foo'(Length => 0, Error => Error);
+               return Foo'(Length => 0, Error => Name_Error);
 
             elsif Cursor = Argument_Count then
                return Foo'(Length => Argument (Cursor)'Length,
                            Error  => Name_Found,
                            Name   => Argument (Cursor));
 
-            elsif On_Cli_Only then
+            elsif On_Command_Line_Only then
                return Foo'(Length => 0, Error => No_Name_Found);
 
             else
                declare
                   Name : constant String := (if Use_Standard_Input then
-                                                Get_Line
+                                                Ada.Text_IO.Get_Line
                                              else
-                                                Get_Clipboard);
+                                                Clortho.Clipboard.Get_Clipboard);
                begin
                   return Foo'(Length => Name'Length,
                               Error  => Name_Found,
@@ -514,15 +516,14 @@ package body Clortho.Command_Line is
                end;
             end if;
 
-
          end Get_Name;
 
          Name : constant Foo :=
-                  Get_Name (Cursor             => Cursor,
-                            On_Cli_Only        => To_Do /= Get_Password,
-                            Use_Standard_Input => Use_Standard_Input);
+                  Get_Name (Cursor               => Cursor,
+                            On_Command_Line_Only => To_Do /= Get_Password,
+                            Use_Standard_Input   => Use_Standard_Input);
       begin
-         if not Ok then
+         if Name.Error = Name_Error then
             raise Constraint_Error;
          end if;
 
@@ -555,66 +556,73 @@ package body Clortho.Command_Line is
    -- Is_Ok --
    -----------
 
-   function Is_Ok (Item : Parsed_CLI) return Boolean is
-   begin
-      pragma Compile_Time_Warning (Standard.True, "Is_Ok unimplemented");
-      return raise Program_Error with "Unimplemented function Is_Ok";
-   end Is_Ok;
+   function Is_Ok (Item : Parsed_CLI) return Boolean
+   is (Item.Status = Ok);
 
    -------------------
    -- Error_Message --
    -------------------
 
-   function Error_Message (Item : Parsed_CLI) return String is
-   begin
-      pragma Compile_Time_Warning
-        (Standard.True, "Error_Message unimplemented");
-      return raise Program_Error with "Unimplemented function Error_Message";
-   end Error_Message;
+   function Error_Message (Item : Parsed_CLI) return String
+   is (case Item.Status is
+          when Ok                     =>
+             "Ok",
+
+          when Unknown_Option         =>
+             "Unknown option '" & Item.Explanation & "'",
+
+          when Missing_Parameter      =>
+             "Missing option parameter",
+
+          when Unrequested_Parameter  =>
+             "Unexpected parameter" & Item.Explanation & "'",
+
+          when Bad_Option_Syntax      =>
+             "Bad syntax in option" & Item.Explanation & "'",
+
+          when Double_Action          =>
+             "More than one action specified",
+
+          when Bad_Integer            =>
+             "Bad integer '" & Item.Explanation & "'",
+
+          when Double_Password        =>
+             "Secret specified more than once",
+
+          when Double_Password_Length =>
+             "Secret length specified more than once",
+
+          when Double_Specs           =>
+             "Secret specs specified more than once"
+      );
 
    -------------
    -- Command --
    -------------
 
-   function Command (Item : Parsed_CLI) return Command_Type is
-   begin
-      pragma Compile_Time_Warning (Standard.True, "Command unimplemented");
-      return raise Program_Error with "Unimplemented function Command";
-   end Command;
+   function Command (Item : Parsed_CLI) return Command_Type
+   is (Item.Command);
 
    ---------------
    -- Entry_Key --
    ---------------
 
-   function Entry_Key (Item : Parsed_CLI) return String is
-   begin
-      pragma Compile_Time_Warning (Standard.True, "Entry_Key unimplemented");
-      return raise Program_Error with "Unimplemented function Entry_Key";
-   end Entry_Key;
+   function Entry_Key (Item : Parsed_CLI) return String
+   is (Item.Name);
 
    ---------------------------
    -- Use_Provided_Password --
    ---------------------------
 
-   function Use_Provided_Password (Item : Parsed_CLI) return Boolean is
-   begin
-      pragma Compile_Time_Warning
-        (Standard.True, "Use_Provided_Password unimplemented");
-      return
-      raise Program_Error
-        with "Unimplemented function Use_Provided_Password";
-   end Use_Provided_Password;
+   function Use_Provided_Password (Item : Parsed_CLI) return Boolean
+   is (Item.User_Password'Length > 0);
 
    -------------------
    -- User_Password --
    -------------------
 
-   function User_Password (Item : Parsed_CLI) return String is
-   begin
-      pragma Compile_Time_Warning
-        (Standard.True, "User_Password unimplemented");
-      return raise Program_Error with "Unimplemented function User_Password";
-   end User_Password;
+   function User_Password (Item : Parsed_CLI) return String
+   is (Item.User_Password);
 
    -------------------
    -- Password_Spec --
@@ -622,12 +630,7 @@ package body Clortho.Command_Line is
 
    function Password_Spec
      (Item : Parsed_CLI) return Password_Conditions.Condition_Type
-   is
-   begin
-      pragma Compile_Time_Warning
-        (Standard.True, "Password_Spec unimplemented");
-      return raise Program_Error with "Unimplemented function Password_Spec";
-   end Password_Spec;
+   is (Item.Specs);
 
    ---------------------
    -- Password_Length --
@@ -644,11 +647,7 @@ package body Clortho.Command_Line is
    -- Password_Target --
    ---------------------
 
-   function Password_Target (Item : Parsed_CLI) return Target_Name is
-   begin
-      pragma Compile_Time_Warning
-        (Standard.True, "Password_Target unimplemented");
-      return raise Program_Error with "Unimplemented function Password_Target";
-   end Password_Target;
+   function Password_Target (Item : Parsed_CLI) return Target_Name
+   is (Item.Target);
 
 end Clortho.Command_Line;
