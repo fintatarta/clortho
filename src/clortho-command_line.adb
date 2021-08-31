@@ -439,6 +439,7 @@ package body Clortho.Command_Line is
                                   Name_Length     => Argument (Cursor)'Length,
                                   Password_Length => 0,
                                   Explanation     => Argument (Cursor));
+
             when Missing_Parameter =>
                return Parsed_CLI'(Status          => Missing_Parameter,
                                   Name_Length     => Argument (Cursor)'Length,
@@ -462,6 +463,88 @@ package body Clortho.Command_Line is
          end case;
       end loop;
 
+      declare
+         type Result_Type is (Name_Found, No_Name_Found, Error);
+
+         type Foo (Length : Positive;
+                   Error  : Result_Type) is
+            record
+               case Error is
+                  when Name_Found =>
+                     Name : String (1 .. Length);
+
+                  when No_Name_Found | Error =>
+                     null;
+               end case;
+            end record;
+
+         function Get_Name (Cursor             : Positive;
+                            On_Cli_Only        : Boolean;
+                            Use_Standard_Input : Boolean)
+                            return Foo;
+
+
+         function Get_Name (Cursor             : Positive;
+                            On_Cli_Only        : Boolean;
+                            Use_Standard_Input : Boolean)
+                            return Foo
+         is
+         begin
+            if Cursor < Argument_Count then
+               return Foo'(Length => 0, Error => Error);
+
+            elsif Cursor = Argument_Count then
+               return Foo'(Length => Argument (Cursor)'Length,
+                           Error  => Name_Found,
+                           Name   => Argument (Cursor));
+
+            elsif On_Cli_Only then
+               return Foo'(Length => 0, Error => No_Name_Found);
+
+            else
+               declare
+                  Name : constant String := (if Use_Standard_Input then
+                                                Get_Line
+                                             else
+                                                Get_Clipboard);
+               begin
+                  return Foo'(Length => Name'Length,
+                              Error  => Name_Found,
+                              Name   => Name);
+               end;
+            end if;
+
+
+         end Get_Name;
+
+         Name : constant Foo :=
+                  Get_Name (Cursor             => Cursor,
+                            On_Cli_Only        => To_Do /= Get_Password,
+                            Use_Standard_Input => Use_Standard_Input);
+      begin
+         if not Ok then
+            raise Constraint_Error;
+         end if;
+
+         case To_Do is
+            when Get_Password =>
+               null;
+            when Get_Old_Password =>
+               null;
+            when Create_Entry =>
+               null;
+            when Renew_Password =>
+               null;
+            when Vacuum_Entry =>
+               null;
+            when Roll_Back_Entry =>
+               null;
+            when Delete_Entry =>
+               null;
+            when Vacuum_All =>
+               null;
+         end case;
+      end;
       pragma Compile_Time_Warning
         (Standard.True, "Parse_Command_Line unimplemented");
       return
