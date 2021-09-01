@@ -125,4 +125,19 @@ private
                null;
          end case;
       end record;
+
+   --  Wrap arounds library functions to make SPARK happy
+   function Argument_Count return Natural
+     with
+       Global => null;
+
+   function Argument (N : Positive) return String
+     with
+       Global => null,
+       Pre => N <= Argument_Count;
+
+   procedure Get_Line (Item : out Unbounded_String)
+     with
+       Global => null;
+
 end Clortho.Command_Line;
