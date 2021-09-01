@@ -107,12 +107,11 @@ private
    subtype Error_Without_Explanation is
      Error_Status range Double_Action .. Double_Specs;
 
-   type Parsed_CLI (Status          : Error_Status;
-                    Name_Length     : Natural)  is
+   type Parsed_CLI (Status : Error_Status)  is
       record
          case Status is
             when Ok =>
-               Name            : String (1 .. Name_Length);
+               Name            : Unbounded_String;
                User_Password   : Unbounded_String;
                Command         : Command_Type;
                Target          : Target_Name;

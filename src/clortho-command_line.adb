@@ -264,25 +264,20 @@ package body Clortho.Command_Line is
                        OK    : out Boolean);
 
       function Double_Action return Parsed_CLI
-      is (Parsed_CLI'(Status          => Double_Action,
-                      Name_Length     => 0));
+      is (Parsed_CLI'(Status => Double_Action));
 
       function Bad_Integer (X : Unbounded_String) return Parsed_CLI
-      is (Parsed_CLI'(Status          => Bad_Integer,
-                      Name_Length     => 0,
-                      Explanation     => X));
+      is (Parsed_CLI'(Status      => Bad_Integer,
+                      Explanation => X));
 
       function Double_Password return Parsed_CLI
-      is (Parsed_CLI'(Status          => Double_Password,
-                      Name_Length     => 0));
+      is (Parsed_CLI'(Status => Double_Password));
 
       function Double_Specs return Parsed_CLI
-      is (Parsed_CLI'(Status          => Double_Specs,
-                      Name_Length     => 0));
+      is (Parsed_CLI'(Status => Double_Specs));
 
       function Double_Password_Length return Parsed_CLI
-      is (Parsed_CLI'(Status          => Double_Password_Length,
-                      Name_Length     => 0));
+      is (Parsed_CLI'(Status => Double_Password_Length));
 
       procedure Parse (Input : String;
                        Value : out Positive;
@@ -454,22 +449,18 @@ package body Clortho.Command_Line is
 
             when Unknown_Option =>
                return Parsed_CLI'(Status          => Unknown_Option,
-                                  Name_Length     => 0,
                                   Explanation     => +Argument (Cursor));
 
             when Missing_Parameter =>
                return Parsed_CLI'(Status          => Missing_Parameter,
-                                  Name_Length     => 0,
                                   Explanation     => +Argument (Cursor));
 
             when Unrequested_Parameter =>
                return Parsed_CLI'(Status          => Unrequested_Parameter,
-                                  Name_Length     => 0,
                                   Explanation     => +Argument (Cursor));
 
             when Bad_Option_Syntax =>
                return Parsed_CLI'(Status          => Unknown_Option,
-                                  Name_Length     => 0,
                                   Explanation     => +Argument (Cursor));
 
             when End_Of_Options =>
@@ -539,7 +530,7 @@ package body Clortho.Command_Line is
             raise Constraint_Error;
          end if;
 
-         Back_Step := Target_Name'Pos (Output_Target);
+         --  Back_Step := Target_Name'Pos (Output_Target);
 
          case To_Do is
             when Get_Password =>
@@ -626,7 +617,7 @@ package body Clortho.Command_Line is
    ---------------
 
    function Entry_Key (Item : Parsed_CLI) return String
-   is (Item.Name);
+   is (To_String (Item.Name));
 
    ---------------------------
    -- Use_Provided_Password --
