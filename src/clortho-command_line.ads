@@ -1,4 +1,6 @@
 with Clortho.Password_Conditions;
+with Ada.Strings.Unbounded;  use Ada.Strings.Unbounded;
+
 package Clortho.Command_Line is
    pragma SPARK_Mode;
 
@@ -92,28 +94,36 @@ private
       Missing_Parameter,
       Unrequested_Parameter,
       Bad_Option_Syntax,
-      Double_Action,
       Bad_Integer,
+      Double_Action,
       Double_Password,
       Double_Password_Length,
       Double_Specs
      );
 
+   subtype Error_With_Explanation is
+     Error_Status range Unknown_Option .. Bad_Integer;
+
+   subtype Error_Without_Explanation is
+     Error_Status range Double_Action .. Double_Specs;
+
    type Parsed_CLI (Status          : Error_Status;
-                    Name_Length     : Natural;
-                    Password_Length : Natural)  is
+                    Name_Length     : Natural)  is
       record
          case Status is
             when Ok =>
-               Name          : String (1 .. Name_Length);
-               User_Password : String (1 .. Password_Length);
-               Command       : Command_Type;
-               Target        : Target_Name;
-               Specs         : Password_Conditions.Condition_Type;
+               Name            : String (1 .. Name_Length);
+               User_Password   : Unbounded_String;
+               Command         : Command_Type;
+               Target          : Target_Name;
+               Specs           : Password_Conditions.Condition_Type;
+               Password_Length : Positive;
 
-            when Unknown_Option .. Double_Specs =>
-               Explanation   : String (1 .. Name_Length);
+            when Error_With_Explanation  =>
+               Explanation   : Unbounded_String;
 
+            when Error_Without_Explanation =>
+               null;
          end case;
       end record;
 end Clortho.Command_Line;

@@ -1,12 +1,11 @@
 pragma Ada_2012;
 with Ada.Command_Line;
-with Ada.Strings.Unbounded;  use Ada.Strings.Unbounded;
 with Ada.Strings.Fixed;
-with Ada.Text_IO;
+with Ada.Text_IO.Unbounded_IO; use Ada.Text_IO;
 
 with Clortho.Clipboard;
 
-with Password_Style_Parsers;
+--  with Password_Style_Parsers;
 
 package body Clortho.Command_Line is
    pragma SPARK_Mode;
@@ -103,7 +102,32 @@ package body Clortho.Command_Line is
    ------------------------
 
    function Parse_Command_Line return Parsed_CLI is
-      use Ada.Command_Line;
+      function Argument_Count return Natural
+        with
+          Global => null;
+
+      function Argument (N : Positive) return String
+        with
+          Global => null;
+
+      procedure Get_Line (Item : out Unbounded_String)
+        with
+          Global => null;
+
+      function Argument_Count return Natural
+      is (Ada.Command_Line.Argument_Count)
+        with  SPARK_Mode => Off;
+
+      function Argument (N : Positive) return String
+      is (Ada.Command_Line.Argument (N))
+        with SPARK_Mode => Off;
+
+      procedure Get_Line (Item : out Unbounded_String)
+        with SPARK_Mode => Off
+      is
+      begin
+         Unbounded_IO.Get_Line (Item);
+      end Get_Line;
 
       procedure Start_Option_Scanning (Cursor : out Positive);
 
@@ -241,33 +265,24 @@ package body Clortho.Command_Line is
 
       function Double_Action return Parsed_CLI
       is (Parsed_CLI'(Status          => Double_Action,
-                      Name_Length     => 0,
-                      Password_Length => 0,
-                      Explanation     => ""));
+                      Name_Length     => 0));
 
       function Bad_Integer (X : Unbounded_String) return Parsed_CLI
       is (Parsed_CLI'(Status          => Bad_Integer,
-                      Name_Length     => Length (X),
-                      Password_Length => 0,
-                      Explanation     => To_String (X)));
+                      Name_Length     => 0,
+                      Explanation     => X));
 
       function Double_Password return Parsed_CLI
       is (Parsed_CLI'(Status          => Double_Password,
-                      Name_Length     => 0,
-                      Password_Length => 0,
-                      Explanation     => ""));
+                      Name_Length     => 0));
 
       function Double_Specs return Parsed_CLI
       is (Parsed_CLI'(Status          => Double_Specs,
-                      Name_Length     => 0,
-                      Password_Length => 0,
-                      Explanation     => ""));
+                      Name_Length     => 0));
 
       function Double_Password_Length return Parsed_CLI
       is (Parsed_CLI'(Status          => Double_Password_Length,
-                      Name_Length     => 0,
-                      Password_Length => 0,
-                      Explanation     => ""));
+                      Name_Length     => 0));
 
       procedure Parse (Input : String;
                        Value : out Positive;
@@ -283,21 +298,21 @@ package body Clortho.Command_Line is
       end Parse;
 
       No_User_Password : constant Unbounded_String := Null_Unbounded_String;
-      No_Password_Len : constant Natural := 0;
-      No_Specs : constant Unbounded_String := Null_Unbounded_String;
+      No_Password_Len  : constant Natural := 0;
+      No_Specs         : constant Unbounded_String := Null_Unbounded_String;
 
-      Cursor : Positive;
-      Option : Option_Symbol;
+      Cursor    : Positive;
+      Option    : Option_Symbol;
       Parameter : Unbounded_String;
 
-      To_Do : Command_Type := Get_Password;
-      Back_Step : Natural := 0;
-      Password_Len : Natural := No_Password_Len;
-      Password_N_Bits : Natural := No_Password_Len;
+      To_Do                  : Command_Type := Get_Password;
+      Back_Step              : Natural := 0;
+      Password_Len           : Natural := No_Password_Len;
+      Password_N_Bits        : Natural := No_Password_Len;
       User_Provided_Password : Unbounded_String := No_User_Password;
-      Output_Target : Target_Name := Clipboard;
-      Specs : Unbounded_String := No_Specs;
-      Use_Standard_Input : Boolean := False;
+      Output_Target          : Target_Name := Clipboard;
+      Specs                  : Unbounded_String := No_Specs;
+      Use_Standard_Input     : Boolean := False;
    begin
       Start_Option_Scanning (Cursor);
 
@@ -439,27 +454,23 @@ package body Clortho.Command_Line is
 
             when Unknown_Option =>
                return Parsed_CLI'(Status          => Unknown_Option,
-                                  Name_Length     => Argument (Cursor)'Length,
-                                  Password_Length => 0,
-                                  Explanation     => Argument (Cursor));
+                                  Name_Length     => 0,
+                                  Explanation     => +Argument (Cursor));
 
             when Missing_Parameter =>
                return Parsed_CLI'(Status          => Missing_Parameter,
-                                  Name_Length     => Argument (Cursor)'Length,
-                                  Password_Length => 0,
-                                  Explanation     => Argument (Cursor));
+                                  Name_Length     => 0,
+                                  Explanation     => +Argument (Cursor));
 
             when Unrequested_Parameter =>
                return Parsed_CLI'(Status          => Unrequested_Parameter,
-                                  Name_Length     => Argument (Cursor)'Length,
-                                  Password_Length => 0,
-                                  Explanation     => Argument (Cursor));
+                                  Name_Length     => 0,
+                                  Explanation     => +Argument (Cursor));
 
             when Bad_Option_Syntax =>
                return Parsed_CLI'(Status          => Unknown_Option,
-                                  Name_Length     => Argument (Cursor)'Length,
-                                  Password_Length => 0,
-                                  Explanation     => Argument (Cursor));
+                                  Name_Length     => 0,
+                                  Explanation     => +Argument (Cursor));
 
             when End_Of_Options =>
                null;
@@ -469,12 +480,11 @@ package body Clortho.Command_Line is
       declare
          type Result_Type is (Name_Found, No_Name_Found, Name_Error);
 
-         type Foo (Length : Natural;
-                   Error  : Result_Type) is
+         type Foo (Error  : Result_Type) is
             record
                case Error is
                   when Name_Found =>
-                     Name : String (1 .. Length);
+                     Name : Unbounded_String;
 
                   when No_Name_Found | Name_Error =>
                      null;
@@ -493,25 +503,26 @@ package body Clortho.Command_Line is
          is
          begin
             if Cursor < Argument_Count then
-               return Foo'(Length => 0, Error => Name_Error);
+               return Foo'(Error => Name_Error);
 
             elsif Cursor = Argument_Count then
-               return Foo'(Length => Argument (Cursor)'Length,
-                           Error  => Name_Found,
-                           Name   => Argument (Cursor));
+               return Foo'(Error  => Name_Found,
+                           Name   => +Argument (Cursor));
 
             elsif On_Command_Line_Only then
-               return Foo'(Length => 0, Error => No_Name_Found);
+               return Foo'(Error => No_Name_Found);
 
             else
                declare
-                  Name : constant String := (if Use_Standard_Input then
-                                                Ada.Text_IO.Get_Line
-                                             else
-                                                Clortho.Clipboard.Get_Clipboard);
+                  Name : Unbounded_String;
                begin
-                  return Foo'(Length => Name'Length,
-                              Error  => Name_Found,
+                  if Use_Standard_Input then
+                     Get_Line (Name);
+                  else
+                     Clortho.Clipboard.Get_Clipboard (Name);
+                  end if;
+
+                  return Foo'(Error  => Name_Found,
                               Name   => Name);
                end;
             end if;
@@ -523,9 +534,12 @@ package body Clortho.Command_Line is
                             On_Command_Line_Only => To_Do /= Get_Password,
                             Use_Standard_Input   => Use_Standard_Input);
       begin
+
          if Name.Error = Name_Error then
             raise Constraint_Error;
          end if;
+
+         Back_Step := Target_Name'Pos (Output_Target);
 
          case To_Do is
             when Get_Password =>
@@ -547,7 +561,7 @@ package body Clortho.Command_Line is
          end case;
       end;
       pragma Compile_Time_Warning
-        (Standard.True, "Parse_Command_Line unimplemented");
+        (Standard.False, "Parse_Command_Line unimplemented");
       return
       raise Program_Error with "Unimplemented function Parse_Command_Line";
    end Parse_Command_Line;
@@ -563,28 +577,32 @@ package body Clortho.Command_Line is
    -- Error_Message --
    -------------------
 
+   function Explanation (Item : Parsed_CLI) return String
+   is ("'" & To_String (Item.Explanation) & "'")
+     with Pre => Item.Status in Error_With_Explanation;
+
    function Error_Message (Item : Parsed_CLI) return String
    is (case Item.Status is
           when Ok                     =>
              "Ok",
 
           when Unknown_Option         =>
-             "Unknown option '" & Item.Explanation & "'",
+             "Unknown option " & Explanation (Item),
 
           when Missing_Parameter      =>
              "Missing option parameter",
 
           when Unrequested_Parameter  =>
-             "Unexpected parameter" & Item.Explanation & "'",
+             "Unexpected parameter " & Explanation (Item),
 
           when Bad_Option_Syntax      =>
-             "Bad syntax in option" & Item.Explanation & "'",
+             "Bad syntax in option " & Explanation (Item),
 
           when Double_Action          =>
              "More than one action specified",
 
           when Bad_Integer            =>
-             "Bad integer '" & Item.Explanation & "'",
+             "Bad integer " & Explanation (Item),
 
           when Double_Password        =>
              "Secret specified more than once",
@@ -615,14 +633,14 @@ package body Clortho.Command_Line is
    ---------------------------
 
    function Use_Provided_Password (Item : Parsed_CLI) return Boolean
-   is (Item.User_Password'Length > 0);
+   is (Item.User_Password /= Null_Unbounded_String);
 
    -------------------
    -- User_Password --
    -------------------
 
    function User_Password (Item : Parsed_CLI) return String
-   is (Item.User_Password);
+   is (To_String (Item.User_Password));
 
    -------------------
    -- Password_Spec --
@@ -636,12 +654,8 @@ package body Clortho.Command_Line is
    -- Password_Length --
    ---------------------
 
-   function Password_Length (Item : Parsed_CLI) return Positive is
-   begin
-      pragma Compile_Time_Warning
-        (Standard.True, "Password_Length unimplemented");
-      return raise Program_Error with "Unimplemented function Password_Length";
-   end Password_Length;
+   function Password_Length (Item : Parsed_CLI) return Positive
+   is (Item.Password_Length);
 
    ---------------------
    -- Password_Target --

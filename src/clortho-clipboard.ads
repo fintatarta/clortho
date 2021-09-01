@@ -1,3 +1,5 @@
+with Ada.Strings.Unbounded;
+
 package Clortho.Clipboard is
-   function Get_Clipboard return String;
+   procedure Get_Clipboard (Item : out Ada.Strings.Unbounded.Unbounded_String);
 end Clortho.Clipboard;

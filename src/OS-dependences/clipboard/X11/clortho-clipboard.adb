@@ -5,11 +5,10 @@ package body Clortho.Clipboard is
    -- Get_Clipboard --
    -------------------
 
-   function Get_Clipboard return String is
+   procedure Get_Clipboard (Item : out Ada.Strings.Unbounded.Unbounded_String)
+   is
    begin
-      pragma Compile_Time_Warning
-        (Standard.True, "Get_Clipboard unimplemented");
-      return raise Program_Error with "Unimplemented function Get_Clipboard";
+      Item := Ada.Strings.Unbounded.Null_Unbounded_String;
    end Get_Clipboard;
 
 end Clortho.Clipboard;
