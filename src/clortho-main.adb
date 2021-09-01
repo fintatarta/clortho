@@ -27,6 +27,9 @@ begin
       when Command_Line.Get_Password =>
          null;
 
+      when Command_Line.Get_Old_Password =>
+         null;
+
       when Command_Line.Create_Entry =>
          null;
 

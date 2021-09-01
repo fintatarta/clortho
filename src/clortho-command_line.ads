@@ -31,6 +31,12 @@ package Clortho.Command_Line is
       Clipboard
      );
 
+   type source_name is
+     (
+      Standard_Input,
+      Clipboard
+     );
+
    type Parsed_CLI (<>) is private;
 
    function Parse_Command_Line return Parsed_CLI;
@@ -98,14 +104,23 @@ private
       Double_Action,
       Double_Password,
       Double_Password_Length,
-      Double_Specs
+      Double_Specs,
+      Missing_Key,
+      Unexpected_Key,
+      Bad_Command_Line
      );
 
    subtype Error_With_Explanation is
      Error_Status range Unknown_Option .. Bad_Integer;
 
    subtype Error_Without_Explanation is
-     Error_Status range Double_Action .. Double_Specs;
+     Error_Status range Double_Action .. Bad_Command_Line;
+
+   subtype Option_Processing_Error is
+     Error_Status range Ok .. Double_Specs;
+
+   subtype Key_Processing_Error is
+     Error_Status range Missing_Key .. Bad_Command_Line;
 
    type Parsed_CLI (Status : Error_Status)  is
       record

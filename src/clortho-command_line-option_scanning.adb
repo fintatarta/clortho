@@ -262,9 +262,9 @@ package body Clortho.Command_Line.Option_Scanning is
    -- Scan_Options --
    ------------------
 
-   procedure Scan_Options (Cursor : out Positive;
-                           Result : out Option_Descriptor;
-                           Err    : out Error_Status)
+   procedure Scan_Options (Cursor :    out Positive;
+                           Result : in out Option_Sets.Option_Set;
+                           Err    :    out Option_Processing_Error)
    is
 
       Option    : Option_Symbol;
@@ -279,15 +279,15 @@ package body Clortho.Command_Line.Option_Scanning is
 
          case Option is
             when Old =>
-               if Is_Action_Set (Result) then
+               if Option_Sets.Is_Action_Defined (Result) then
                   Err := Double_Action;
                   return;
                end if;
 
-               Get_Old_Password (Result, 1);
+               Option_Sets.Do_Get_Old_Password (Result, 1);
 
             when Back =>
-               if Is_Action_Set (Result) then
+               if Option_Sets.Is_Action_Defined (Result) then
                   Err := Double_Action;
                   return;
                end if;
@@ -303,67 +303,67 @@ package body Clortho.Command_Line.Option_Scanning is
                      return;
                   end if;
 
-                  Get_Old_Password (Result, N);
+                  Option_Sets.Do_Get_Old_Password (Result, N);
                end;
 
             when Create =>
-               if Is_Action_Set (Result) then
+               if Option_Sets.Is_Action_Defined (Result) then
                   Err := Double_Action;
                   return;
                end if;
 
-               Do_Create_Entry (Result);
+               Option_Sets.Do_Create_Entry (Result);
 
             when Renew =>
-               if Is_Action_Set (Result) then
+               if Option_Sets.Is_Action_Defined (Result) then
                   Err := Double_Action;
                   return;
                end if;
 
-               Do_Renew_Password (Result);
+               Option_Sets.Do_Renew_Password (Result);
 
             when Vacuum =>
-               if Is_Action_Set (Result) then
+               if Option_Sets.Is_Action_Defined (Result) then
                   Err := Double_Action;
                   return;
                end if;
 
-               Do_Vacuum (Result);
+               Option_Sets.Do_Vacuum (Result);
 
             when Full_Vacuum =>
-               if Is_Action_Set (Result) then
+               if Option_Sets.Is_Action_Defined (Result) then
                   Err := Double_Action;
                   return;
                end if;
 
-               Do_Full_Vacuum (Result);
+               Option_Sets.Do_Full_Vacuum (Result);
 
             when Delete =>
-               if Is_Action_Set (Result) then
+               if Option_Sets.Is_Action_Defined (Result) then
                   Err := Double_Action;
                   return;
                end if;
 
-               Do_Delete (Result);
+               Option_Sets.Do_Delete (Result);
 
             when Roll_Back =>
-               if Is_Action_Set (Result) then
+               if Option_Sets.Is_Action_Defined (Result) then
                   Err := Double_Action;
                   return;
                end if;
 
-               Do_Roll_Back (Result);
+               Option_Sets.Do_Roll_Back (Result);
 
             when  User_Password =>
-               if Password_Provided (Result) then
+               if Option_Sets.Is_Password_Provided (Result) then
                   Err := Double_Password;
                   return;
                end if;
 
-               Set_User_Password (Result, Parameter);
+               Option_Sets.Set_User_Password (Result, Parameter);
 
             when Password_Length =>
-               if Password_Length_Specified (Result) then
+               if Option_Sets.Is_Password_Length_Specified (Result) then
                   Err := Double_Password_Length;
                   return;
                end if;
@@ -376,13 +376,14 @@ package body Clortho.Command_Line.Option_Scanning is
 
                   if not OK  then
                      Err := Bad_Integer;
+                     return;
                   end if;
 
-                  Set_Password_Nchars (Result, N);
+                  Option_Sets.Set_Password_Nchars (Result, N);
                end;
 
             when Password_Bits =>
-               if Password_Length_Specified (Result) then
+               if Option_Sets.Is_Password_Spec_Defined (Result) then
                   Err := Double_Password_Length;
                   return;
                end if;
@@ -395,28 +396,29 @@ package body Clortho.Command_Line.Option_Scanning is
 
                   if not OK  then
                      Err := Bad_Integer;
+                     return;
                   end if;
 
-                  Set_Password_Nbits (Result, N);
+                  Option_Sets.Set_Password_Nbits (Result, N);
                end;
 
             when Password_Spec =>
-               if Password_Spec_Defined (Result) then
+               if Option_Sets.Is_Password_Spec_Defined (Result) then
                   Err := Double_Specs;
                   return;
                end if;
 
-               Set_Password_Specs (Result, Parameter);
+               Option_Sets.Set_Password_Specs (Result, Parameter);
 
             when Input =>
-               Use_Standard_Input (Result);
+               Option_Sets.Use_Source (Result, Standard_Input);
 
             when Output =>
-               Use_Standard_Output (Result);
+               Option_Sets.Use_Target (Result, Standard_Output);
 
             when Filter  =>
-               Use_Standard_Input (Result);
-               Use_Standard_Output (Result);
+               Option_Sets.Use_Source (Result, Standard_Input);
+               Option_Sets.Use_Target (Result, Standard_Output);
 
                --  when Unknown_Option =>
                --     return Parsed_CLI'(Status          => Unknown_Option,
