@@ -266,6 +266,7 @@ package body Clortho.Command_Line.Option_Scanning is
                            Result : in out Option_Sets.Option_Set;
                            Err    :    out Option_Processing_Error)
    is
+      use Option_Sets;
 
       Option    : Option_Symbol;
       Parameter : Unbounded_String;
@@ -279,15 +280,15 @@ package body Clortho.Command_Line.Option_Scanning is
 
          case Option is
             when Old =>
-               if Option_Sets.Is_Action_Defined (Result) then
+               if Option_Sets.Is_Defined (Action (Result)) then
                   Err := Double_Action;
                   return;
                end if;
 
-               Option_Sets.Do_Get_Old_Password (Result, 1);
+               Option_Sets.Do_Get_Password (Result, 1);
 
             when Back =>
-               if Option_Sets.Is_Action_Defined (Result) then
+               if Option_Sets.Is_Defined (Action (Result)) then
                   Err := Double_Action;
                   return;
                end if;
@@ -303,11 +304,11 @@ package body Clortho.Command_Line.Option_Scanning is
                      return;
                   end if;
 
-                  Option_Sets.Do_Get_Old_Password (Result, N);
+                  Option_Sets.Do_Get_Password (Result, N);
                end;
 
             when Create =>
-               if Option_Sets.Is_Action_Defined (Result) then
+               if Option_Sets.Is_Defined (Action (Result)) then
                   Err := Double_Action;
                   return;
                end if;
@@ -315,7 +316,7 @@ package body Clortho.Command_Line.Option_Scanning is
                Option_Sets.Do_Create_Entry (Result);
 
             when Renew =>
-               if Option_Sets.Is_Action_Defined (Result) then
+               if Option_Sets.Is_Defined (Action (Result)) then
                   Err := Double_Action;
                   return;
                end if;
@@ -323,7 +324,7 @@ package body Clortho.Command_Line.Option_Scanning is
                Option_Sets.Do_Renew_Password (Result);
 
             when Vacuum =>
-               if Option_Sets.Is_Action_Defined (Result) then
+               if Option_Sets.Is_Defined (Action (Result)) then
                   Err := Double_Action;
                   return;
                end if;
@@ -331,7 +332,7 @@ package body Clortho.Command_Line.Option_Scanning is
                Option_Sets.Do_Vacuum (Result);
 
             when Full_Vacuum =>
-               if Option_Sets.Is_Action_Defined (Result) then
+               if Option_Sets.Is_Defined (Action (Result)) then
                   Err := Double_Action;
                   return;
                end if;
@@ -339,7 +340,7 @@ package body Clortho.Command_Line.Option_Scanning is
                Option_Sets.Do_Full_Vacuum (Result);
 
             when Delete =>
-               if Option_Sets.Is_Action_Defined (Result) then
+               if Option_Sets.Is_Defined (Action (Result)) then
                   Err := Double_Action;
                   return;
                end if;
@@ -347,7 +348,7 @@ package body Clortho.Command_Line.Option_Scanning is
                Option_Sets.Do_Delete (Result);
 
             when Roll_Back =>
-               if Option_Sets.Is_Action_Defined (Result) then
+               if Option_Sets.Is_Defined (Action (Result)) then
                   Err := Double_Action;
                   return;
                end if;
@@ -355,7 +356,7 @@ package body Clortho.Command_Line.Option_Scanning is
                Option_Sets.Do_Roll_Back (Result);
 
             when  User_Password =>
-               if Option_Sets.Is_Password_Provided (Result) then
+               if Is_Defined (User_Password (Result)) then
                   Err := Double_Password;
                   return;
                end if;
@@ -383,7 +384,7 @@ package body Clortho.Command_Line.Option_Scanning is
                end;
 
             when Password_Bits =>
-               if Option_Sets.Is_Password_Spec_Defined (Result) then
+               if Is_Defined (Password_Spec (Result)) then
                   Err := Double_Password_Length;
                   return;
                end if;
@@ -403,7 +404,7 @@ package body Clortho.Command_Line.Option_Scanning is
                end;
 
             when Password_Spec =>
-               if Option_Sets.Is_Password_Spec_Defined (Result) then
+               if Is_Defined (Password_Spec (Result)) then
                   Err := Double_Specs;
                   return;
                end if;
@@ -440,6 +441,10 @@ package body Clortho.Command_Line.Option_Scanning is
                null;
          end case;
       end loop;
+
+      if not Is_Defined (Action (Result)) then
+         Do_Get_Password (Result, 0);
+      end if;
    end Scan_Options;
 
 end Clortho.Command_Line.Option_Scanning;

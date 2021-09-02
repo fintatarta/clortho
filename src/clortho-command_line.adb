@@ -235,9 +235,9 @@ package body Clortho.Command_Line is
          case Action (Options)  is
             when Get_Password =>
                if
-                 Is_Password_Provided (Options)
+                 Is_Defined (User_Password (Options))
                  or Is_Password_Length_Specified (Options)
-                 or Is_Password_Spec_Defined (Options)
+                 or Is_Defined (Password_Spec (Options))
                then
                   return To_Parsed_CLI (Bad_Command_Line, Cursor);
                end if;
