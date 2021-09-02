@@ -29,62 +29,76 @@ package body Clortho.Command_Line is
       Unbounded_IO.Get_Line (Item);
    end Get_Line;
 
+   subtype True_Error is
+     Error_Status range Error_Status'Succ (Ok) .. Error_Status'Last;
+
+   --
+   --  Convert the error status into a Parsed_CLI record that can be
+   --  returned to the caller of Parse_Comand_Line
+   --
+   function To_Parsed_CLI (Status : True_Error;
+                           Cursor : Positive) return Parsed_CLI;
+
    type Result_Type is (Name_Found, No_Name_Found, Name_Error);
 
-   type Foo (Error  : Result_Type) is
-      record
-         case Error is
-            when Name_Found =>
-               Name : Unbounded_String;
+   --
+   --  Read the "name," that is, the key used to access the DB of secrets
+   --  Depending on the specific command, the name can be found in few
+   --  different places
+   --
+   --  * First the command line is checked.  The name, if present,
+   --    must be the last parameter
+   --
+   --  * For some commands (currently only Get_Password) the name can be
+   --    obtained also from the clipboard (the default) or from the standard
+   --    input (if the user specified the `--in` option)
+   --
+   --  The information about if a name was actually found or not (or any error
+   --  occured) is returned into Result.
+   --
+   procedure Get_Name (Cursor               : Positive;
+                       On_Command_Line_Only : Boolean;
+                       Use_Standard_Input   : Boolean;
+                       Name                 : out Unbounded_String;
+                       Result               : out Result_Type);
 
-            when No_Name_Found | Name_Error =>
-               null;
-         end case;
-      end record;
-
-   function Get_Name (Cursor               : Positive;
-                      On_Command_Line_Only : Boolean;
-                      Use_Standard_Input   : Boolean)
-                      return Foo;
-
-   function Get_Name (Cursor               : Positive;
-                      On_Command_Line_Only : Boolean;
-                      Use_Standard_Input   : Boolean)
-                      return Foo
+   procedure Get_Name (Cursor               : Positive;
+                       On_Command_Line_Only : Boolean;
+                       Use_Standard_Input   : Boolean;
+                       Name                 : out Unbounded_String;
+                       Result               : out Result_Type)
    is
    begin
       if Cursor < Argument_Count then
-         return Foo'(Error => Name_Error);
+         Name := Null_Unbounded_String;
+         Result := Name_Error;
+         return;
 
       elsif Cursor = Argument_Count then
-         return Foo'(Error  => Name_Found,
-                     Name   => +Argument (Cursor));
+         Name := +Argument (Cursor);
+         Result := Name_Found;
+         return;
 
       elsif On_Command_Line_Only then
-         return Foo'(Error => No_Name_Found);
+         Name := Null_Unbounded_String;
+         Result := No_Name_Found;
+         return;
 
       else
-         declare
-            Name : Unbounded_String;
-         begin
-            if Use_Standard_Input then
-               Get_Line (Name);
-            else
-               Clortho.Clipboard.Get_Clipboard (Name);
-            end if;
+         if Use_Standard_Input then
+            Get_Line (Name);
+         else
+            Clortho.Clipboard.Get_Clipboard (Name);
+         end if;
 
-            return Foo'(Error  => Name_Found,
-                        Name   => Name);
-         end;
+         Result := Name_Found;
+         return;
       end if;
    end Get_Name;
 
-   ------------------------
-   -- Parse_Command_Line --
-   ------------------------
-
-   function Parse_Command_Line return Parsed_CLI is
-
+   function To_Parsed_CLI (Status : True_Error;
+                           Cursor : Positive) return Parsed_CLI
+   is
       function Double_Action return Parsed_CLI;
       function Double_Password return Parsed_CLI;
       function Double_Password_Length return Parsed_CLI;
@@ -135,19 +149,8 @@ package body Clortho.Command_Line is
       function Bad_Option_Syntax (X : String) return Parsed_CLI
       is (Parsed_CLI'(Status      => Bad_Option_Syntax,
                       Explanation => To_Unbounded_String (X)));
-
-      Cursor  : Positive;
-      Options : Option_Sets.Option_Set;
-      Success : Error_Status;
    begin
-      Option_Scanning.Scan_Options (Cursor => Cursor,
-                                    Result => Options,
-                                    Err    => Success);
-
-      case Success is
-         when Ok =>
-            null;
-
+      case Status is
          when Unknown_Option =>
             return Unknown_Option (Argument (Cursor));
 
@@ -178,51 +181,87 @@ package body Clortho.Command_Line is
          when Key_Processing_Error =>
             raise Program_Error;
       end case;
+   end To_Parsed_CLI;
+
+   ------------------------
+   -- Parse_Command_Line --
+   ------------------------
+
+   function Parse_Command_Line return Parsed_CLI
+   is
+      Cursor  : Positive;
+      Options : Option_Sets.Option_Set;
+      Success : Error_Status;
+   begin
+      Option_Scanning.Scan_Options (Cursor => Cursor,
+                                    Result => Options,
+                                    Err    => Success);
+
+      if Success /= Ok then
+         return To_Parsed_CLI (Success, Cursor);
+      end if;
 
       pragma Assert (Success = Ok);
 
       declare
-         Name : constant Foo :=
-                  Get_Name (Cursor               => Cursor,
+         use Option_Sets;
 
-                            On_Command_Line_Only =>
-                              Option_Sets.Action (Options) /= Get_Password,
+         Name : Unbounded_String;
+         Result : Result_Type;
 
-                            Use_Standard_Input   =>
-                              Option_Sets.Source (Options) = Standard_Input);
       begin
-         if Name.Error = Name_Error then
-            raise Constraint_Error;
+         Get_Name (Cursor               => Cursor,
+                   On_Command_Line_Only => Action (Options) /= Get_Password,
+                   Use_Standard_Input   => Source (Options) = Standard_Input,
+                   Name                 => Name,
+                   Result               => Result);
+
+         if Result = Name_Error then
+            return To_Parsed_CLI (Bad_Command_Line, Cursor);
          end if;
 
-         case Option_Sets.Action (Options) is
+         case Action (Options) is
             when Command_With_Parameter =>
-               if Name.Error = No_Name_Found then
-                  return Missing_Key;
+               if Result = No_Name_Found then
+                  return To_Parsed_CLI (Missing_Key, Cursor);
                end if;
 
             when others =>
-               if Name.Error = No_Name_Found then
-                  return Unexpected_Key;
+               if Result = Name_Found then
+                  return To_Parsed_CLI (Unexpected_Key, Cursor);
                end if;
          end case;
 
-         case Option_Sets.Action (Options)  is
+         case Action (Options)  is
             when Get_Password =>
+               if
+                 Is_Password_Provided (Options)
+                 or Is_Password_Length_Specified (Options)
+                 or Is_Password_Spec_Defined (Options)
+               then
+                  return To_Parsed_CLI (Bad_Command_Line, Cursor);
+               end if;
+
+               return Parsed_CLI'(Status          => Ok,
+                                  Name            => Name,
+                                  User_Password   => Null_Unbounded_String,
+                                  Command         => Get_Password,
+                                  Target          => Target (Options),
+                                  Specs           => <>,
+                                  Version         => Password_Version (Options),
+                                  Password_Length => 1);
+
+            when Create_Entry     =>
                null;
-            when Get_Old_Password =>
+            when Renew_Password   =>
                null;
-            when Create_Entry =>
+            when Vacuum_Entry     =>
                null;
-            when Renew_Password =>
+            when Roll_Back_Entry  =>
                null;
-            when Vacuum_Entry =>
+            when Delete_Entry     =>
                null;
-            when Roll_Back_Entry =>
-               null;
-            when Delete_Entry =>
-               null;
-            when Vacuum_All =>
+            when Vacuum_All       =>
                null;
          end case;
       end;

@@ -1,125 +1,140 @@
+with Clortho.Flagged_Types;       use Clortho.Flagged_Types;
+with Generic_Flagged_Types;
+
 package Clortho.Command_Line.Option_Sets is
+   package Flagged_Commands is
+     new Generic_Flagged_Types (Root_Type     => Command_Type,
+                                Default_Value => Get_Password);
+
+   subtype Flagged_Command is Flagged_Commands.Flagged_Type;
+
+   function Is_Defined (X : Flagged_Command) return Boolean
+                        renames Flagged_Commands.Is_Defined;
+
+   function Is_Defined (X : Flagged_String) return Boolean
+                        renames Flagged_Strings.Is_Defined;
+
+   function Is_Defined (X : Flagged_Natural) return Boolean
+                        renames Flagged_Naturals.Is_Defined;
+
+   function Is_Defined (X : Flagged_Positive) return Boolean
+                        renames Flagged_Positives.Is_Defined;
 
    type Option_Set is private;
 
    procedure Set_Default_Value (Item : out Option_Set);
 
-   function Is_Action_Defined (Item : Option_Set) return Boolean;
+   function Action (Item : Option_Set) return Flagged_Command;
 
-   function Action (Item : Option_Set) return Command_Type;
-
-   procedure Do_Get_Old_Password (Item : in out Option_Set;
-                                  N    : Positive)
+   function Action (Item : Option_Set) return Command_Type
      with
-       Pre => not Is_Action_Defined (Item),
+       Pre => Flagged_Commands.Is_Defined (Action (Item));
+
+   procedure Do_Get_Password (Item : in out Option_Set;
+                              N    : Natural)
+     with
+       Pre => not Is_Defined (Action (Item)),
        Post =>
-         Is_Action_Defined (Item)
-         and Action (Item) = Get_Old_Password;
+         Is_Defined (Action (Item))
+         and (Action (Item) = Get_Password
+              and then Password_Version (Item) = N);
+
+   function Password_Version (Item : Option_Set) return Natural
+     with
+       Pre => Is_Defined (Action (Item)) and then Action (Item) = Get_Password;
 
    procedure Do_Create_Entry (Item : in out Option_Set)
      with
-       Pre => not Is_Action_Defined (Item),
+       Pre => not Is_Defined (Action (Item)),
        Post =>
-         Is_Action_Defined (Item)
+         Is_Defined (Action (Item))
          and Action (Item) = Create_Entry;
 
    procedure Do_Renew_Password (Item : in out Option_Set)
      with
-       Pre => not Is_Action_Defined (Item),
+       Pre => not Is_Defined (Action (Item)),
        Post =>
-         Is_Action_Defined (Item)
+         Is_Defined (Action (Item))
          and Action (Item) = Renew_Password;
 
    procedure Do_Vacuum (Item : in out Option_Set)
      with
-       Pre => not Is_Action_Defined (Item),
+       Pre => not Is_Defined (Action (Item)),
        Post =>
-         Is_Action_Defined (Item)
+         Is_Defined (Action (Item))
          and Action (Item) = Vacuum_Entry;
 
    procedure Do_Full_Vacuum (Item : in out Option_Set)
      with
-       Pre => not Is_Action_Defined (Item),
+       Pre => not Is_Defined (Action (Item)),
        Post =>
-         Is_Action_Defined (Item)
+         Is_Defined (Action (Item))
          and Action (Item) = Vacuum_All;
 
    procedure Do_Delete (Item : in out Option_Set)
      with
-       Pre => not Is_Action_Defined (Item),
+       Pre => not Is_Defined (Action (Item)),
        Post =>
-         Is_Action_Defined (Item)
+         Is_Defined (Action (Item))
          and Action (Item) = Delete_Entry;
 
    procedure Do_Roll_Back (Item : in out Option_Set)
      with
-       Pre => not Is_Action_Defined (Item),
+       Pre => not Is_Defined (Action (Item)),
        Post =>
-         Is_Action_Defined (Item)
+         Is_Defined (Action (Item))
          and Action (Item) = Roll_Back_Entry;
 
-   function Is_Password_Provided (Item : Option_Set) return Boolean;
+   function User_Password (Item : Option_Set) return Flagged_String;
 
-   function User_Password (Item : Option_Set) return String
+   function User_Password (Item : Option_Set) return Unbounded_String
+   is (Flagged_Strings.Value (User_Password (Item)))
      with
-       Pre => Is_Password_Provided (Item);
+       Pre => Is_Defined (User_Password (Item));
 
    procedure Set_User_Password (Item     : in out Option_Set;
                                 Password : Unbounded_String)
      with
-       Pre => not Is_Password_Provided (Item),
+       Pre => not Is_Defined (User_Password (Item)),
        Post =>
-         Is_Password_Provided (Item)
-         and then User_Password (Item) = To_String (Password);
+         Is_Defined (User_Password (Item))
+         and then User_Password (Item) = Password;
 
-   function Is_Password_N_Char_Specified (Item : Option_Set) return Boolean;
+   function Password_Nbits (Item : Option_Set) return Flagged_Positive;
 
-   function Is_Password_N_Bits_Specified (Item : Option_Set) return Boolean;
+   function Password_Nchars (Item : Option_Set) return Flagged_Positive;
 
    function Is_Password_Length_Specified (Item : Option_Set) return Boolean
-   is (Is_Password_N_Bits_Specified (Item)
-       or Is_Password_N_Char_Specified (Item));
-
-   function Password_Nbits (Item : Option_Set) return Positive
-     with
-       Pre => Is_Password_N_Bits_Specified (Item);
-
-   function Password_Nchars (Item : Option_Set) return Positive
-     with
-       Pre => Is_Password_N_Char_Specified (Item);
+   is (Is_Defined (Password_Nbits (Item))
+       or Is_Defined (Password_Nchars (Item)));
 
    procedure Set_Password_Nbits (Item   : in out Option_Set;
                                  N_Bits : Positive)
      with
        Pre => not Is_Password_Length_Specified (Item),
        Post =>
-         (Is_Password_N_Bits_Specified (Item)
-          and not Is_Password_N_Char_Specified (Item))
-         and then Password_Nbits (Item) = N_Bits;
+         (Is_Defined (Password_Nbits (Item))
+          and not Is_Defined (Password_Nchars (Item)))
+         and then Flagged_Positives.Value (Password_Nbits (Item)) = N_Bits;
 
    procedure Set_Password_Nchars (Item    : in out Option_Set;
                                   N_Chars : Positive)
      with
-       Pre => not Is_Password_Length_Specified (Item),
+       Pre => not Is_Defined (Password_Nbits (Item)),
        Post =>
-         (Is_Password_N_Char_Specified (Item)
-          and not Is_Password_N_Bits_Specified (Item))
-         and then Password_Nchars (Item) = N_Chars;
+         Is_Defined (Password_Nbits (Item))
+         and then Flagged_Positives.Value (Password_Nchars (Item)) = N_Chars;
 
-   function Is_Password_Spec_Defined (Item : Option_Set) return Boolean;
-
-   function Password_Spec (Item : Option_Set) return String
-     with
-       Pre => Is_Password_Spec_Defined (Item);
+   function Password_Spec (Item : Option_Set) return Flagged_String;
 
    procedure Set_Password_Specs (Item  : in out Option_Set;
                                  Specs : Unbounded_String)
      with
        Pre =>
-         not Is_Password_Spec_Defined (Item),
+         not Is_Defined (Password_Spec (Item)),
          Post =>
-           Is_Password_Spec_Defined (Item)
-           and then Password_Spec (Item) = To_String (Specs);
+           Is_Defined (Password_Spec (Item))
+           and then Flagged_Strings.Value (Password_Spec (Item)) = Specs;
 
    function Source (Item : Option_Set) return Source_Name;
 
@@ -134,13 +149,13 @@ package Clortho.Command_Line.Option_Sets is
 private
    type Option_Set is
       record
-         To_Do                  : Command_Type;
+         To_Do                  : Flagged_Command;
          Back_Step              : Natural;
-         Password_Len           : Natural;
-         Password_N_Bits        : Natural;
-         User_Provided_Password : Unbounded_String;
+         Password_Len           : Flagged_Positive;
+         Password_N_Bits        : Flagged_Positive;
+         User_Provided_Password : Flagged_String;
          Output_Target          : Target_Name;
-         Specs                  : Unbounded_String;
+         Specs                  : Flagged_String;
          Use_Standard_Input     : Boolean;
       end record;
 end Clortho.Command_Line.Option_Sets;

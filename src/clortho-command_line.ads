@@ -7,7 +7,6 @@ package Clortho.Command_Line is
    type Command_Type is
      (
       Get_Password,
-      Get_Old_Password,
       Create_Entry,
       Renew_Password,
       Vacuum_Entry,
@@ -31,7 +30,7 @@ package Clortho.Command_Line is
       Clipboard
      );
 
-   type source_name is
+   type Source_Name is
      (
       Standard_Input,
       Clipboard
@@ -132,6 +131,7 @@ private
                Target          : Target_Name;
                Specs           : Password_Conditions.Condition_Type;
                Password_Length : Positive;
+               Version         : Natural;
 
             when Error_With_Explanation  =>
                Explanation   : Unbounded_String;
