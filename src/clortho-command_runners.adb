@@ -1,14 +1,18 @@
 pragma Ada_2012;
+with Ada.Numerics.Elementary_Functions;
+with Ada.Strings.Maps;
+
 with Clortho.Command_Line;   use Clortho.Command_Line;
 with Clortho.Flagged_Types;  use Clortho.Flagged_Types;
 with Clortho.Option_Sets;
-with Clortho.Password_Conditions;
 with Clortho.Password_Style;
 with Clortho.Password_Generation;
+with Clortho.Password_Conditions;
 
 package body Clortho.Command_Runners is
 
    Default_Specs : constant String := "/a-z/A-Z/0-9/^a-zA-Z0-9/";
+   Default_Password_Length : constant Positive := 12;
 
    Void_Password : constant String := "";
 
@@ -52,6 +56,24 @@ package body Clortho.Command_Runners is
 
    function Get_New_Password (Config : Command_Line.Parsed_CLI) return String
    is
+      function Bits_To_Char (Entropy : Positive;
+                             Specs   : Password_Conditions.Condition_Type)
+                             return Positive;
+
+      function Bits_To_Char (Entropy : Positive;
+                             Specs   : Password_Conditions.Condition_Type)
+                             return Positive
+      is
+         use Password_Conditions;
+         use Ada.Numerics.Elementary_Functions;
+         use Ada.Strings.Maps;
+
+         Allowed : constant String := To_Sequence (Allowed_Chars (Specs));
+         Bit_Per_Char : constant Float :=
+                          Log (Float (Allowed'Length), 2.0);
+      begin
+         return Positive (Float'Ceiling (Float (Entropy) / Bit_Per_Char));
+      end Bits_To_Char;
    begin
       if User_Provided_Password (Config) then
          return User_Password (Config);
@@ -61,6 +83,7 @@ package body Clortho.Command_Runners is
          use type Password_Style.Exit_Status;
 
          package PG renames Password_Generation;
+         package CL renames Command_Line;
 
          Specs        : constant String :=
                           (if Option_Sets.Is_Defined (Password_Spec (Config)) then
@@ -72,6 +95,8 @@ package body Clortho.Command_Runners is
                             (Input       => Specs,
                              Missing_Are => Password_Style.Prohibited);
 
+         Length : Positive;
+
       begin
          if Parsed_Specs.Status /= Password_Style.Ok then
             return Void_Password;
@@ -79,12 +104,22 @@ package body Clortho.Command_Runners is
          else
             pragma Assert (Parsed_Specs.Status = Password_Style.Ok);
 
+            if Option_Sets.Is_Defined (Password_Length (Config)) then
+               Length := Option_Sets.Value (CL.Password_Length (Config));
+
+            elsif Option_Sets.Is_Defined (CL.Password_Nbits (Config)) then
+               Length := Bits_To_Char
+                 (Entropy => Option_Sets.Value (CL.Password_Nbits (Config)),
+                  Specs   => Parsed_Specs.Conditions);
+
+            else
+               Length := Default_Password_Length;
+            end if;
+
             return PG.Get_Password (Length     => Length,
                                     Constraint => Parsed_Specs.Conditions);
          end if;
       end;
-
-      return "";
    end Get_New_Password;
 
    function Unexpected_Password_Option (Config : Command_Line.Parsed_CLI)
@@ -110,10 +145,12 @@ package body Clortho.Command_Runners is
 
    procedure Create_Entry (Config         : Command_Line.Parsed_CLI;
                            Command_Status : out Command_Exit_Status) is
+      New_Password : constant String := Get_New_Password (Config);
    begin
-      pragma Compile_Time_Warning
-        (Standard.True, "Create_Entry unimplemented");
-      raise Program_Error with "Unimplemented procedure Create_Entry";
+      if New_Password = Void_Password then
+         Command_Status := (Err => Generic_Error);
+         return;
+      end if;
    end Create_Entry;
 
    --------------------
@@ -121,11 +158,14 @@ package body Clortho.Command_Runners is
    --------------------
 
    procedure Renew_Password (Config         : Command_Line.Parsed_CLI;
-                             Command_Status : out Command_Exit_Status) is
+                             Command_Status : out Command_Exit_Status)
+   is
+      New_Password : constant String := Get_New_Password (Config);
    begin
-      pragma Compile_Time_Warning
-        (Standard.True, "Renew_Password unimplemented");
-      raise Program_Error with "Unimplemented procedure Renew_Password";
+      if New_Password = Void_Password then
+         Command_Status := (Err => Generic_Error);
+         return;
+      end if;
    end Renew_Password;
 
    ------------------
@@ -135,6 +175,11 @@ package body Clortho.Command_Runners is
    procedure Vacuum_Entry (Config         : Command_Line.Parsed_CLI;
                            Command_Status : out Command_Exit_Status) is
    begin
+      if not No_Password_Options (Config) then
+         Command_Status := Unexpected_Password_Option (Config);
+         return;
+      end if;
+
       pragma Compile_Time_Warning
         (Standard.True, "Vacuum_Entry unimplemented");
       raise Program_Error with "Unimplemented procedure Vacuum_Entry";
@@ -147,6 +192,11 @@ package body Clortho.Command_Runners is
    procedure Roll_Back_Entry (Config         : Command_Line.Parsed_CLI;
                               Command_Status : out Command_Exit_Status) is
    begin
+      if not No_Password_Options (Config) then
+         Command_Status := Unexpected_Password_Option (Config);
+         return;
+      end if;
+
       pragma Compile_Time_Warning
         (Standard.True, "Roll_Back_Entry unimplemented");
       raise Program_Error with "Unimplemented procedure Roll_Back_Entry";
@@ -159,6 +209,11 @@ package body Clortho.Command_Runners is
    procedure Delete_Entry (Config         : Command_Line.Parsed_CLI;
                            Command_Status : out Command_Exit_Status) is
    begin
+      if not No_Password_Options (Config) then
+         Command_Status := Unexpected_Password_Option (Config);
+         return;
+      end if;
+
       pragma Compile_Time_Warning
         (Standard.True, "Delete_Entry unimplemented");
       raise Program_Error with "Unimplemented procedure Delete_Entry";
@@ -169,8 +224,13 @@ package body Clortho.Command_Runners is
    ----------------
 
    procedure Vacuum_All (Config         : Command_Line.Parsed_CLI;
-                         Command_Status : out Command_Exit_Status) is
+                         Command_Status : out Command_Exit_Status)
+   is
    begin
+      if not No_Password_Options (Config) then
+         Command_Status := Unexpected_Password_Option (Config);
+         return;
+      end if;
       pragma Compile_Time_Warning (Standard.True, "Vacuum_All unimplemented");
       raise Program_Error with "Unimplemented procedure Vacuum_All";
    end Vacuum_All;
