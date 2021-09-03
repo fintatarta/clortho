@@ -64,6 +64,13 @@ package Clortho.Option_Sets is
          Is_Defined (Action (Item))
          and Action (Item) = Renew_Password;
 
+   procedure Do_List (Item : in out Option_Set)
+     with
+       Pre => not Is_Defined (Action (Item)),
+       Post =>
+         Is_Defined (Action (Item))
+         and Action (Item) = List;
+
    procedure Do_Vacuum (Item : in out Option_Set)
      with
        Pre => not Is_Defined (Action (Item)),

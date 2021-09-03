@@ -61,6 +61,9 @@ begin
 
       when Commands.Vacuum_All =>
          Command_Runners.Vacuum_All (Config, Exit_Status);
+
+      when Commands.List =>
+         Command_Runners.List (Config, Exit_Status);
    end case;
 
    if not Command_Runners.Is_Ok (Exit_Status) then

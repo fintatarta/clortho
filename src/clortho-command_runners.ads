@@ -58,6 +58,13 @@ package Clortho.Command_Runners is
        Pre =>
          Command_Line.Is_Ok (Config)
          and then Command_Line.Command (Config) = Vacuum_All;
+
+   procedure List (Config         : Command_Line.Parsed_CLI;
+                   Command_Status : out Command_Exit_Status)
+     with
+       Pre =>
+         Command_Line.Is_Ok (Config)
+         and then Command_Line.Command (Config) = List;
 private
    type Error_Type is
      (

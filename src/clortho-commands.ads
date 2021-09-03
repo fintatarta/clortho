@@ -8,6 +8,7 @@ package Clortho.Commands is
       Vacuum_Entry,
       Roll_Back_Entry,
       Delete_Entry,
+      List,
       Vacuum_All
      );
 

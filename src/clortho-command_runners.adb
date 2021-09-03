@@ -11,7 +11,7 @@ with Clortho.Password_Conditions;
 
 package body Clortho.Command_Runners is
 
-   Default_Specs : constant String := "/a-z/A-Z/0-9/^a-zA-Z0-9/";
+   Default_Specs           : constant String := "/a-z/A-Z/0-9/^a-zA-Z0-9/";
    Default_Password_Length : constant Positive := 12;
 
    Void_Password : constant String := "";
@@ -68,7 +68,7 @@ package body Clortho.Command_Runners is
          use Ada.Numerics.Elementary_Functions;
          use Ada.Strings.Maps;
 
-         Allowed : constant String := To_Sequence (Allowed_Chars (Specs));
+         Allowed      : constant String := To_Sequence (Allowed_Chars (Specs));
          Bit_Per_Char : constant Float :=
                           Log (Float (Allowed'Length), 2.0);
       begin
@@ -235,4 +235,19 @@ package body Clortho.Command_Runners is
       raise Program_Error with "Unimplemented procedure Vacuum_All";
    end Vacuum_All;
 
+   ----------
+   -- List --
+   ----------
+
+   procedure List (Config         : Command_Line.Parsed_CLI;
+                   Command_Status : out Command_Exit_Status)
+   is
+   begin
+      if not No_Password_Options (Config) then
+         Command_Status := Unexpected_Password_Option (Config);
+         return;
+      end if;
+      pragma Compile_Time_Warning (Standard.True, "Vacuum_All unimplemented");
+      raise Program_Error with "Unimplemented procedure Vacuum_All";
+   end List;
 end Clortho.Command_Runners;

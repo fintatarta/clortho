@@ -24,6 +24,7 @@ package body Clortho.Command_Line.Option_Scanning is
       Input,
       Output,
       Filter,
+      List,
       End_Of_Options
       --  Unknown_Option,
       --  Missing_Parameter,
@@ -48,6 +49,7 @@ package body Clortho.Command_Line.Option_Scanning is
                        Input                 => False,
                        Output                => False,
                        Filter                => False,
+                       List                  => False,
                        End_Of_Options        => False
                        --  Unknown_Option        => False,
                        --  Missing_Parameter     => False,
@@ -84,7 +86,8 @@ package body Clortho.Command_Line.Option_Scanning is
                 (+"out", Output),
                 (+"filter", Filter),
                 (+"in-out", Filter),
-                (+"inout", Filter)
+                (+"inout", Filter),
+                (+"list", List)
                 --  (+"not-smart", Non_Url_Matching),
                 --  (+"strict", Non_Url_Matching)
                );
@@ -354,6 +357,14 @@ package body Clortho.Command_Line.Option_Scanning is
                end if;
 
                Option_Sets.Do_Roll_Back (Result);
+
+            when List =>
+               if Option_Sets.Is_Defined (Action (Result)) then
+                  Err := Double_Action;
+                  return;
+               end if;
+
+               Option_Sets.Do_List (Result);
 
             when  User_Password =>
                if Is_Defined (User_Password (Result)) then
