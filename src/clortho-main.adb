@@ -6,48 +6,68 @@ with Ada.Command_Line;
 --  with Clortho.Password_Style;
 with Clortho.Command_Line;
 with Clortho.Logging;
+with Clortho.Commands;
+with Clortho.Command_Runners;
 
 procedure Clortho.Main is
 
 pragma SPARK_Mode;
 
-   --  Conditions : constant Password_Conditions.Condition_Type :=
-   --                 Password_Style.Parse (Input       => "/a-z/A-Z/0-9/!@\/",
-   --                                       Missing_Are => Password_Style.Prohibited);
+   --
+   --  Wrapper to make SPARK happy, otherwise is complains that
+   --  Set_Exit_Status has no global contract. It is OK since
+   --  it is the last procedure called before returning
+   --
+   procedure Set_Exit_Status (X : Ada.Command_Line.Exit_Status)
+     with
+       Global => null;
+
+   procedure Set_Exit_Status (X : Ada.Command_Line.Exit_Status)
+   is
+      pragma SPARK_Mode (Off);
+   begin
+      Ada.Command_Line.Set_Exit_Status (X);
+   end Set_Exit_Status;
+
    Config : constant Clortho.Command_Line.Parsed_CLI :=
               Clortho.Command_Line.Parse_Command_Line;
+
+   Exit_Status : Command_Runners.Command_Exit_Status;
 begin
    if not Command_Line.Is_Ok (Config) then
       Logging.Print_To_Stderr (Command_Line.Error_Message (Config));
-      Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+      Set_Exit_Status (Ada.Command_Line.Failure);
       return;
    end if;
 
    case Command_Line.Command (Config) is
-      when Command_Line.Get_Password =>
-         null;
+      when Commands.Get_Password =>
+         Command_Runners.Get_Password (Config, Exit_Status);
 
-      when Command_Line.Get_Old_Password =>
-         null;
+      when Commands.Create_Entry =>
+         Command_Runners.Create_Entry (Config, Exit_Status);
 
-      when Command_Line.Create_Entry =>
-         null;
+      when Commands.Renew_Password =>
+         Command_Runners.Renew_Password (Config, Exit_Status);
 
-      when Command_Line.Renew_Password =>
-         null;
+      when Commands.Vacuum_Entry =>
+         Command_Runners.Vacuum_Entry (Config, Exit_Status);
 
-      when Command_Line.Vacuum_Entry =>
-         null;
+      when Commands.Roll_Back_Entry =>
+         Command_Runners.Roll_Back_Entry (Config, Exit_Status);
 
-      when Command_Line.Roll_Back_Entry =>
-         null;
+      when Commands.Delete_Entry =>
+         Command_Runners.Delete_Entry (Config, Exit_Status);
 
-      when Command_Line.Delete_Entry =>
-         null;
-
-      when Command_Line.Vacuum_All =>
-         null;
+      when Commands.Vacuum_All =>
+         Command_Runners.Vacuum_All (Config, Exit_Status);
    end case;
-   --  Put_Line (Password_Generation.Get_Password (Length     => 12,
-   --                                              Constraint => Conditions));
+
+   if not Command_Runners.Is_Ok (Exit_Status) then
+      Logging.Print_To_Stderr (Command_Runners.Error_Message (Exit_Status));
+      Set_Exit_Status (Ada.Command_Line.Failure);
+   else
+      Set_Exit_Status (Ada.Command_Line.Success);
+   end if;
+
 end Clortho.Main;

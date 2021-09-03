@@ -3,8 +3,9 @@ with Ada.Command_Line;
 with Ada.Text_IO.Unbounded_IO; use Ada.Text_IO;
 
 with Clortho.Clipboard;
-with Clortho.Command_Line.Option_Sets;
 with Clortho.Command_Line.Option_Scanning;
+
+with Clortho.Flagged_Types;      use Clortho.Flagged_Types;
 
 --  with Password_Style_Parsers;
 
@@ -206,7 +207,7 @@ package body Clortho.Command_Line is
       declare
          use Option_Sets;
 
-         Name : Unbounded_String;
+         Name   : Unbounded_String;
          Result : Result_Type;
 
       begin
@@ -232,43 +233,14 @@ package body Clortho.Command_Line is
                end if;
          end case;
 
-         case Action (Options)  is
-            when Get_Password =>
-               if
-                 Is_Defined (User_Password (Options))
-                 or Is_Password_Length_Specified (Options)
-                 or Is_Defined (Password_Spec (Options))
-               then
-                  return To_Parsed_CLI (Bad_Command_Line, Cursor);
-               end if;
-
-               return Parsed_CLI'(Status          => Ok,
-                                  Name            => Name,
-                                  User_Password   => Null_Unbounded_String,
-                                  Command         => Get_Password,
-                                  Target          => Target (Options),
-                                  Specs           => <>,
-                                  Version         => Password_Version (Options),
-                                  Password_Length => 1);
-
-            when Create_Entry     =>
-               null;
-            when Renew_Password   =>
-               null;
-            when Vacuum_Entry     =>
-               null;
-            when Roll_Back_Entry  =>
-               null;
-            when Delete_Entry     =>
-               null;
-            when Vacuum_All       =>
-               null;
-         end case;
+         return Parsed_CLI'(Status  => Ok,
+                            Options => Options,
+                            Key     => (if Result = Name_Found
+                                        then
+                                           Flagged_Strings.To_Flagged (Name)
+                                        else
+                                           Flagged_Strings.Undefined));
       end;
-      pragma Compile_Time_Warning
-        (Standard.False, "Parse_Command_Line unimplemented");
-      return
-      raise Program_Error with "Unimplemented function Parse_Command_Line";
    end Parse_Command_Line;
 
    -----------
@@ -333,49 +305,57 @@ package body Clortho.Command_Line is
    -------------
 
    function Command (Item : Parsed_CLI) return Command_Type
-   is (Item.Command);
+   is (Option_Sets.Action (Item.Options));
 
    ---------------
    -- Entry_Key --
    ---------------
 
    function Entry_Key (Item : Parsed_CLI) return String
-   is (To_String (Item.Name));
+   is (To_String (Flagged_Strings.Value (Item.Key)));
 
    ---------------------------
    -- Use_Provided_Password --
    ---------------------------
 
-   function Use_Provided_Password (Item : Parsed_CLI) return Boolean
-   is (Item.User_Password /= Null_Unbounded_String);
+   function User_Provided_Password (Item : Parsed_CLI) return Boolean
+   is (Flagged_Strings.Is_Defined (Option_Sets.User_Password (Item.Options)));
 
    -------------------
    -- User_Password --
    -------------------
 
    function User_Password (Item : Parsed_CLI) return String
-   is (To_String (Item.User_Password));
+   is (To_String
+       (Flagged_Strings.Value (Option_Sets.User_Password (Item.Options))));
 
    -------------------
    -- Password_Spec --
    -------------------
 
    function Password_Spec
-     (Item : Parsed_CLI) return Password_Conditions.Condition_Type
-   is (Item.Specs);
+     (Item : Parsed_CLI) return Flagged_String
+   is (Option_Sets.Password_Spec (Item.Options));
 
    ---------------------
    -- Password_Length --
    ---------------------
 
-   function Password_Length (Item : Parsed_CLI) return Positive
-   is (Item.Password_Length);
+   function Password_Length (Item : Parsed_CLI) return Option_Sets.Char_Length
+   is (Option_Sets.Password_Nchars (Item.Options));
+
+   --------------------
+   -- Password_Nbits --
+   --------------------
+
+   function Password_Nbits (Item : Parsed_CLI) return Option_Sets.Entropy
+   is (Option_Sets.Password_Nbits (Item.Options));
 
    ---------------------
    -- Password_Target --
    ---------------------
 
    function Password_Target (Item : Parsed_CLI) return Target_Name
-   is (Item.Target);
+   is (Option_Sets.Target (Item.Options));
 
 end Clortho.Command_Line;

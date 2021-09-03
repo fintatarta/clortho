@@ -11,6 +11,10 @@ package Generic_Flagged_Types is
      with
        Post => not Is_Defined (Undefined'Result);
 
+   function To_Flagged (X : Root_Type) return Flagged_Type
+     with
+       Post => not Is_Defined (To_Flagged'Result);
+
    function Is_Defined (X : Flagged_Type) return Boolean;
 
    procedure Set (X    : in out Flagged_Type;
@@ -32,6 +36,9 @@ private
 
    function Undefined return Flagged_Type
    is (Flagged_Type'(False, Default_Value));
+
+   function To_Flagged (X : Root_Type) return Flagged_Type
+   is (Flagged_Type'(True, X));
 
    function Is_Defined (X : Flagged_Type) return Boolean
    is (X.Defined);

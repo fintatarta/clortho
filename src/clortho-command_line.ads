@@ -1,40 +1,13 @@
-with Clortho.Password_Conditions;
+with Clortho.Option_Sets;
+with Clortho.Commands;
+with Clortho.Flagged_Types;
+
 with Ada.Strings.Unbounded;  use Ada.Strings.Unbounded;
 
 package Clortho.Command_Line is
    pragma SPARK_Mode;
 
-   type Command_Type is
-     (
-      Get_Password,
-      Create_Entry,
-      Renew_Password,
-      Vacuum_Entry,
-      Roll_Back_Entry,
-      Delete_Entry,
-      Vacuum_All
-     );
-
-   subtype Command_With_Parameter
-     is Command_Type range Get_Password .. Delete_Entry;
-
-   subtype Creation_Command
-     is Command_Type range Create_Entry .. Renew_Password;
-
-   subtype Password_Writing_Command
-     is Command_Type range Get_Password .. Renew_Password;
-
-   type Target_Name is
-     (
-      Standard_Output,
-      Clipboard
-     );
-
-   type Source_Name is
-     (
-      Standard_Input,
-      Clipboard
-     );
+   use Clortho.Commands;
 
    type Parsed_CLI (<>) is private;
 
@@ -56,7 +29,7 @@ package Clortho.Command_Line is
          Is_Ok (Item)
          and then (Command (Item) in Command_With_Parameter);
 
-   function Use_Provided_Password (Item : Parsed_CLI) return Boolean
+   function User_Provided_Password (Item : Parsed_CLI) return Boolean
      with
        Pre =>
          Is_Ok (Item)
@@ -67,22 +40,24 @@ package Clortho.Command_Line is
        Pre =>
          Is_Ok (Item)
          and then Command (Item) in Creation_Command
-         and then Use_Provided_Password (Item);
+         and then User_Provided_Password (Item);
 
    function Password_Spec (Item : Parsed_CLI)
-                           return Password_Conditions.Condition_Type
+                           return Flagged_Types.Flagged_String
      with
        Pre =>
          Is_Ok (Item)
          and then Command (Item) in Creation_Command
-         and then not Use_Provided_Password (Item);
+         and then not User_Provided_Password (Item);
 
-   function Password_Length (Item : Parsed_CLI) return Positive
+   function Password_Length (Item : Parsed_CLI) return Option_Sets.Char_Length
      with
        Pre =>
          Is_Ok (Item)
          and then Command (Item) in Creation_Command
-         and then not Use_Provided_Password (Item);
+         and then not User_Provided_Password (Item);
+
+   function Password_Nbits (Item : Parsed_CLI) return Option_Sets.Entropy;
 
    function Password_Target (Item : Parsed_CLI) return Target_Name
      with
@@ -125,13 +100,8 @@ private
       record
          case Status is
             when Ok =>
-               Name            : Unbounded_String;
-               User_Password   : Unbounded_String;
-               Command         : Command_Type;
-               Target          : Target_Name;
-               Specs           : Password_Conditions.Condition_Type;
-               Password_Length : Positive;
-               Version         : Natural;
+               Options : Option_Sets.Option_Set;
+               Key     : Flagged_Types.Flagged_String;
 
             when Error_With_Explanation  =>
                Explanation   : Unbounded_String;

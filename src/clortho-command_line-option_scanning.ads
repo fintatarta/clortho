@@ -1,4 +1,4 @@
-with Clortho.Command_Line.Option_Sets;
+with Clortho.Option_Sets;
 
 private package Clortho.Command_Line.Option_Scanning is
    pragma SPARK_Mode;
