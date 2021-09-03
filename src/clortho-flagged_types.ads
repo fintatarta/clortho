@@ -22,4 +22,9 @@ package Clortho.Flagged_Types is
                                 Default_Value => Null_Unbounded_String);
 
    subtype Flagged_String is Flagged_Strings.Flagged_Type;
+
+   function Value (X : Flagged_String) return String
+   is (To_String (Flagged_Strings.Value (X)))
+       with
+         Pre => Flagged_Strings.Is_Defined (X);
 end Clortho.Flagged_Types;

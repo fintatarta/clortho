@@ -1,13 +1,95 @@
 pragma Ada_2012;
+with Clortho.Command_Line;   use Clortho.Command_Line;
+with Clortho.Flagged_Types;  use Clortho.Flagged_Types;
+with Clortho.Option_Sets;
+with Clortho.Password_Conditions;
+with Clortho.Password_Style;
+with Clortho.Password_Generation;
+
 package body Clortho.Command_Runners is
+
+   Default_Specs : constant String := "/a-z/A-Z/0-9/^a-zA-Z0-9/";
+
+   Void_Password : constant String := "";
 
    function Is_Ok (Status : Command_Exit_Status) return Boolean
    is (Status.Err = Ok);
 
    function Error_Message (Status : Command_Exit_Status) return String
    is (case Status.Err is
-          when Ok            => "",
-          when Generic_Error => "Generic Error (?)");
+          when Ok                         =>
+             "No error",
+
+          when Unexpected_Password_Option =>
+             "Unexpected password-related options",
+
+          when Generic_Error              =>
+             "Generic Error (?)");
+
+   function Get_New_Password (Config : Command_Line.Parsed_CLI) return String
+     with
+       Pre =>
+         Command (Config) = Create_Entry
+         or Command (Config) = Renew_Password;
+
+   function No_Password_Options (Config : Command_Line.Parsed_CLI)
+                                 return Boolean
+     with
+       Pre =>
+         not (Command (Config) = Create_Entry
+              or Command (Config) = Renew_Password);
+
+   function Unexpected_Password_Option (Config : Command_Line.Parsed_CLI)
+                                        return Command_Exit_Status;
+
+   function No_Password_Options (Config : Command_Line.Parsed_CLI)
+                                 return Boolean
+   is (not
+         (User_Provided_Password (Config)
+          or Option_Sets.Is_Defined (Password_Spec (Config))
+          or Option_Sets.Is_Defined (Password_Length (Config))
+          or Option_Sets.Is_Defined (Password_Nbits (Config))));
+
+   function Get_New_Password (Config : Command_Line.Parsed_CLI) return String
+   is
+   begin
+      if User_Provided_Password (Config) then
+         return User_Password (Config);
+      end if;
+
+      declare
+         use type Password_Style.Exit_Status;
+
+         package PG renames Password_Generation;
+
+         Specs        : constant String :=
+                          (if Option_Sets.Is_Defined (Password_Spec (Config)) then
+                              Value (Password_Spec (Config))
+                           else
+                              Default_Specs);
+         Parsed_Specs : constant Password_Style.Parsing_Result :=
+                          Password_Style.Parse
+                            (Input       => Specs,
+                             Missing_Are => Password_Style.Prohibited);
+
+      begin
+         if Parsed_Specs.Status /= Password_Style.Ok then
+            return Void_Password;
+
+         else
+            pragma Assert (Parsed_Specs.Status = Password_Style.Ok);
+
+            return PG.Get_Password (Length     => Length,
+                                    Constraint => Parsed_Specs.Conditions);
+         end if;
+      end;
+
+      return "";
+   end Get_New_Password;
+
+   function Unexpected_Password_Option (Config : Command_Line.Parsed_CLI)
+                                        return Command_Exit_Status
+   is ((Err => Unexpected_Password_Option));
 
    ------------------
    -- Get_Password --
@@ -16,9 +98,10 @@ package body Clortho.Command_Runners is
    procedure Get_Password (Config         : Command_Line.Parsed_CLI;
                            Command_Status : out Command_Exit_Status) is
    begin
-      pragma Compile_Time_Warning
-        (Standard.True, "Get_Password unimplemented");
-      raise Program_Error with "Unimplemented procedure Get_Password";
+      if not No_Password_Options (Config) then
+         Command_Status := Unexpected_Password_Option (Config);
+         return;
+      end if;
    end Get_Password;
 
    ------------------

@@ -62,6 +62,7 @@ private
    type Error_Type is
      (
       Ok,
+      Unexpected_Password_Option,
       Generic_Error
      );
 

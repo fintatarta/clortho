@@ -10,7 +10,7 @@ package body Password_Style_Parsers is
    -- Parse --
    -----------
 
-   function Parse (Input : String) return Password_Style_Descriptor is
+   function Parse (Input : String) return Parsing_Result is
       use Password_Style_Scanner;
       use type Ada.Strings.Maps.Character_Set;
 
@@ -58,10 +58,6 @@ package body Password_Style_Parsers is
             end if;
          end loop;
 
-         if Result < 2 then
-            raise Parsing_Error;
-         end if;
-
          return Result;
       end Count_Slashes;
 
@@ -89,6 +85,10 @@ package body Password_Style_Parsers is
          Prohibited := Prohibited or X;
       end Add_To_Prohibited;
    begin
+      if Count_Slashes (Input) < 2 then
+         return Parsing_Result'(Success => Parsing_Error, N_Sets => 0);
+      end if;
+
       Scanning.Reset (Scanner, Input);
 
       declare
@@ -198,9 +198,11 @@ package body Password_Style_Parsers is
          end loop;
       end;
 
-      return Password_Style_Descriptor'(N_Sets     => First_Free  - 1,
-                                        Prohibited => Prohibited,
-                                        Mandatory  => Mandatory_Sets);
+      return Parsing_Result'(Success => Ok,
+                             N_Sets  => First_Free - 1,
+                             Style   => (N_Sets     => First_Free  - 1,
+                                         Prohibited => Prohibited,
+                                         Mandatory  => Mandatory_Sets));
    end Parse;
 
    -----------

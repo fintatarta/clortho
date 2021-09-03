@@ -12,7 +12,7 @@ package body Clortho.Password_Style is
 
    function Parse (Input       : String;
                    Missing_Are : Missing_Option)
-                   return Password_Conditions.Condition_Type
+                   return Parsing_Result
    is
       use type Ada.Strings.Maps.Character_Set;
       --  use Utilities;
@@ -24,7 +24,7 @@ package body Clortho.Password_Style is
       Sets          : constant Password_Style_Descriptor := Parse (Input);
    begin
       if not Is_Valid (Sets) then
-         raise Overlapping_Sets;
+         return Parsing_Result'(Status => Overlapping_Sets);
       end if;
 
       Prohibited_Chars := Sets.Prohibited;
@@ -49,7 +49,8 @@ package body Clortho.Password_Style is
             Add_Optional (Result, Optional_Chars);
          end if;
 
-         return Result;
+         return Parsing_Result'(Status     => Ok,
+                                Conditions => Result);
       end;
    end Parse;
 
