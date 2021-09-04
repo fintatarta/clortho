@@ -2,5 +2,6 @@
 with "sparknacl.gpr";
 with "uri.gpr";
 abstract project clortho_Config is
+   Crate_Version := "0.0.0";
 
 end clortho_Config;

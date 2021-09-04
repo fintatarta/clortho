@@ -1,6 +1,8 @@
 with Clortho.Option_Sets;
 with Clortho.Commands;
 with Clortho.Flagged_Types;
+with Clortho.Password_Targets;
+with Clortho.Exit_Statuses;
 
 with Ada.Strings.Unbounded;  use Ada.Strings.Unbounded;
 
@@ -9,7 +11,7 @@ package Clortho.Command_Line is
 
    use Clortho.Commands;
 
-   type Parsed_CLI (<>) is private;
+   type Parsed_CLI is private;
 
    function Parse_Command_Line return Parsed_CLI;
 
@@ -28,6 +30,12 @@ package Clortho.Command_Line is
        Pre =>
          Is_Ok (Item)
          and then (Command (Item) in Command_With_Parameter);
+
+   function Requested_Version (Item : Parsed_CLI) return Positive
+     with
+       Pre =>
+         Is_Ok (Item)
+         and then Command (Item) = Get_Password;
 
    function User_Provided_Password (Item : Parsed_CLI) return Boolean
      with
@@ -59,7 +67,7 @@ package Clortho.Command_Line is
 
    function Password_Nbits (Item : Parsed_CLI) return Option_Sets.Entropy;
 
-   function Password_Target (Item : Parsed_CLI) return Target_Name
+   function Target (Item : Parsed_CLI) return Password_Targets.Target_Name
      with
        Pre =>
          Is_Ok (Item)
@@ -96,19 +104,12 @@ private
    subtype Key_Processing_Error is
      Error_Status range Missing_Key .. Bad_Command_Line;
 
-   type Parsed_CLI (Status : Error_Status)  is
+   type Parsed_CLI  is
       record
-         case Status is
-            when Ok =>
-               Options : Option_Sets.Option_Set;
-               Key     : Flagged_Types.Flagged_String;
+         Status : Exit_Statuses.Exit_Status;
 
-            when Error_With_Explanation  =>
-               Explanation   : Unbounded_String;
-
-            when Error_Without_Explanation =>
-               null;
-         end case;
+         Options : Option_Sets.Option_Set;
+         Key     : Flagged_Types.Flagged_String;
       end record;
 
    --  Wrap arounds library functions to make SPARK happy

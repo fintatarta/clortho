@@ -1,6 +1,7 @@
 with Ada.Strings.Unbounded;       use Ada.Strings.Unbounded;
 with Clortho.Flagged_Types;       use Clortho.Flagged_Types;
 with Clortho.Commands;            use Clortho.Commands;
+with Clortho.Password_Targets;
 
 with Generic_Flagged_Types;
 
@@ -28,6 +29,8 @@ package Clortho.Option_Sets is
    type Entropy is new Flagged_Positive;
 
    type Option_Set is private;
+
+   function New_Set return Option_Set;
 
    procedure Set_Default_Value (Item : out Option_Set);
 
@@ -157,10 +160,10 @@ package Clortho.Option_Sets is
    procedure Use_Source (Item   : in out Option_Set;
                          Source : Source_Name);
 
-   function Target (Item : Option_Set) return Target_Name;
+   function Target (Item : Option_Set) return Password_Targets.Target_Name;
 
    procedure Use_Target (Item   : in out Option_Set;
-                         Target : Target_Name);
+                         Target : Password_Targets.Target_Name);
 
 private
    type Option_Set is
@@ -170,7 +173,7 @@ private
          Password_Len           : Char_Length;
          Password_N_Bits        : Entropy;
          User_Provided_Password : Flagged_String;
-         Output_Target          : Target_Name;
+         Output_Target          : Password_Targets.Target_Name;
          Specs                  : Flagged_String;
          Use_Standard_Input     : Boolean;
       end record;

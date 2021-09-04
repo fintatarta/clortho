@@ -7,8 +7,6 @@ with Clortho.Command_Line.Option_Scanning;
 
 with Clortho.Flagged_Types;      use Clortho.Flagged_Types;
 
---  with Password_Style_Parsers;
-
 package body Clortho.Command_Line is
    pragma SPARK_Mode;
 
@@ -39,6 +37,11 @@ package body Clortho.Command_Line is
    --
    function To_Parsed_CLI (Status : True_Error;
                            Cursor : Positive) return Parsed_CLI;
+
+   function Error_Message (Item : Error_Status) return String;
+
+   function Error_Message (Item : Parsed_CLI) return String
+   is (Exit_Statuses.Reason (Item.Status));
 
    type Result_Type is (Name_Found, No_Name_Found, Name_Error);
 
@@ -113,43 +116,55 @@ package body Clortho.Command_Line is
       function Unrequested_Parameter (X : String) return Parsed_CLI;
       function Bad_Option_Syntax (X : String) return Parsed_CLI;
 
+      function Failure (Err         : Error_Status;
+                        Explanation : String := "")
+                        return Parsed_CLI;
+
+      function Failure (Err         : Error_Status;
+                        Explanation : String := "")
+                        return Parsed_CLI
+      is
+         Head : constant String := Error_Message (Err);
+         Tail : constant String :=
+                  (if Explanation = "" then "" else " '" & Explanation & "'");
+      begin
+         return Parsed_CLI'(Status  => Exit_Statuses.Failure (Head & Tail),
+                            Options => Option_Sets.New_Set,
+                            Key     => Flagged_Strings.Undefined);
+      end Failure;
+
       function Double_Action return Parsed_CLI
-      is (Parsed_CLI'(Status => Double_Action));
+      is (Failure (Double_Action));
 
       function Double_Password return Parsed_CLI
-      is (Parsed_CLI'(Status => Double_Password));
+      is (Failure (Double_Password));
 
       function Double_Specs return Parsed_CLI
-      is (Parsed_CLI'(Status => Double_Specs));
+      is (Failure (Double_Specs));
 
       function Double_Password_Length return Parsed_CLI
-      is (Parsed_CLI'(Status => Double_Password_Length));
+      is (Failure (Double_Password_Length));
 
       function Missing_Key return Parsed_CLI
-      is (Parsed_CLI'(Status => Missing_Key));
+      is (Failure (Missing_Key));
 
       function Unexpected_Key return Parsed_CLI
-      is (Parsed_CLI'(Status => Unexpected_Key));
+      is (Failure (Unexpected_Key));
 
       function Bad_Integer (X : String) return Parsed_CLI
-      is (Parsed_CLI'(Status      => Bad_Integer,
-                      Explanation => To_Unbounded_String (X)));
+      is (Failure (Bad_Integer, X));
 
       function Unknown_Option (X : String) return Parsed_CLI
-      is (Parsed_CLI'(Status      => Unknown_Option,
-                      Explanation => To_Unbounded_String (X)));
+      is (Failure (Unknown_Option, X));
 
       function Missing_Parameter (X : String) return Parsed_CLI
-      is (Parsed_CLI'(Status      => Missing_Parameter,
-                      Explanation => To_Unbounded_String (X)));
+      is (Failure (Missing_Parameter, X));
 
       function Unrequested_Parameter (X : String) return Parsed_CLI
-      is (Parsed_CLI'(Status      => Unrequested_Parameter,
-                      Explanation => To_Unbounded_String (X)));
+      is (Failure (Unrequested_Parameter, X));
 
       function Bad_Option_Syntax (X : String) return Parsed_CLI
-      is (Parsed_CLI'(Status      => Bad_Option_Syntax,
-                      Explanation => To_Unbounded_String (X)));
+      is (Failure (Bad_Option_Syntax, X));
    begin
       case Status is
          when Unknown_Option =>
@@ -233,7 +248,7 @@ package body Clortho.Command_Line is
                end if;
          end case;
 
-         return Parsed_CLI'(Status  => Ok,
+         return Parsed_CLI'(Status  => Exit_Statuses.Success,
                             Options => Options,
                             Key     => (if Result = Name_Found
                                         then
@@ -248,38 +263,38 @@ package body Clortho.Command_Line is
    -----------
 
    function Is_Ok (Item : Parsed_CLI) return Boolean
-   is (Item.Status = Ok);
+   is (Exit_Statuses.Is_Success (Item.Status));
 
    -------------------
    -- Error_Message --
    -------------------
 
-   function Explanation (Item : Parsed_CLI) return String
-   is ("'" & To_String (Item.Explanation) & "'")
-     with Pre => Item.Status in Error_With_Explanation;
+   --  function Explanation (Item : Parsed_CLI) return String
+   --  is ("'" & To_String (Item.Explanation) & "'")
+   --    with Pre => Item.Status in Error_With_Explanation;
 
-   function Error_Message (Item : Parsed_CLI) return String
-   is (case Item.Status is
+   function Error_Message (Item : Error_Status) return String
+   is (case Item is
           when Ok                     =>
              "Ok",
 
           when Unknown_Option         =>
-             "Unknown option " & Explanation (Item),
+             "Unknown option",
 
           when Missing_Parameter      =>
              "Missing option parameter",
 
           when Unrequested_Parameter  =>
-             "Unexpected parameter " & Explanation (Item),
+             "Unexpected parameter",
 
           when Bad_Option_Syntax      =>
-             "Bad syntax in option " & Explanation (Item),
+             "Bad syntax in option",
 
           when Double_Action          =>
              "More than one action specified",
 
           when Bad_Integer            =>
-             "Bad integer " & Explanation (Item),
+             "Bad integer",
 
           when Double_Password        =>
              "Secret specified more than once",
@@ -355,7 +370,14 @@ package body Clortho.Command_Line is
    -- Password_Target --
    ---------------------
 
-   function Password_Target (Item : Parsed_CLI) return Target_Name
+   function Target (Item : Parsed_CLI) return Password_Targets.Target_Name
    is (Option_Sets.Target (Item.Options));
+
+   -----------------------
+   -- Requested_Version --
+   -----------------------
+
+   function Requested_Version (Item : Parsed_CLI) return Positive
+   is (Option_Sets.Password_Version (Item.Options));
 
 end Clortho.Command_Line;

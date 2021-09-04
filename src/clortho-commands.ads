@@ -21,11 +21,6 @@ package Clortho.Commands is
    subtype Password_Writing_Command
      is Command_Type range Get_Password .. Renew_Password;
 
-   type Target_Name is
-     (
-      Standard_Output,
-      Clipboard
-     );
 
    type Source_Name is
      (

@@ -1,5 +1,4 @@
-with Ada.Strings.Unbounded;    use Ada.Strings.Unbounded;
-
+with Clortho.Exit_Statuses;
 package Clortho.Db is
    pragma SPARK_Mode;
 
@@ -9,8 +8,9 @@ package Clortho.Db is
 
    type Abstract_Db_User is interface;
 
-   procedure Callback (User : in out Abstract_Db_User;
-                       Db   : in out Password_Db)
+   procedure Callback (User    : in out Abstract_Db_User;
+                       Db      : in out Password_Db;
+                       Status  : out Exit_Statuses.Exit_Status)
    is abstract
      with
        Pre'Class => Is_Valid (Db),
@@ -58,8 +58,7 @@ package Clortho.Db is
    procedure Use_DB (Filename      : String;
                      DB_Key        : String;
                      User          : in out Abstract_Db_User'Class;
-                     Success       :    out Boolean;
-                     Error_Message : out Unbounded_String);
+                     Success       :    out Exit_Statuses.Exit_Status);
 
    function Contains (Db   : Password_Db;
                       Name : String)

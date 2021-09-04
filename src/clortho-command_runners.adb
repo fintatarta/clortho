@@ -1,6 +1,7 @@
 pragma Ada_2012;
 with Ada.Numerics.Elementary_Functions;
 with Ada.Strings.Maps;
+with Ada.Strings.Unbounded;     use Ada.Strings.Unbounded;
 
 with Clortho.Command_Line;   use Clortho.Command_Line;
 with Clortho.Flagged_Types;  use Clortho.Flagged_Types;
@@ -8,29 +9,17 @@ with Clortho.Option_Sets;
 with Clortho.Password_Style;
 with Clortho.Password_Generation;
 with Clortho.Password_Conditions;
+with Clortho.Password_Targets;
+
+with Clortho.Db;             use Clortho.Db;
 
 package body Clortho.Command_Runners is
 
    Default_Specs           : constant String := "/a-z/A-Z/0-9/^a-zA-Z0-9/";
    Default_Password_Length : constant Positive := 12;
 
-   Void_Password : constant String := "";
-
-   function Is_Ok (Status : Command_Exit_Status) return Boolean
-   is (Status.Err = Ok);
-
-   function Error_Message (Status : Command_Exit_Status) return String
-   is (case Status.Err is
-          when Ok                         =>
-             "No error",
-
-          when Unexpected_Password_Option =>
-             "Unexpected password-related options",
-
-          when Generic_Error              =>
-             "Generic Error (?)");
-
-   function Get_New_Password (Config : Command_Line.Parsed_CLI) return String
+   function Get_New_Password (Config : Command_Line.Parsed_CLI)
+                              return String_Status
      with
        Pre =>
          Command (Config) = Create_Entry
@@ -44,7 +33,7 @@ package body Clortho.Command_Runners is
               or Command (Config) = Renew_Password);
 
    function Unexpected_Password_Option (Config : Command_Line.Parsed_CLI)
-                                        return Command_Exit_Status;
+                                        return Exit_Status;
 
    function No_Password_Options (Config : Command_Line.Parsed_CLI)
                                  return Boolean
@@ -54,7 +43,8 @@ package body Clortho.Command_Runners is
           or Option_Sets.Is_Defined (Password_Length (Config))
           or Option_Sets.Is_Defined (Password_Nbits (Config))));
 
-   function Get_New_Password (Config : Command_Line.Parsed_CLI) return String
+   function Get_New_Password (Config : Command_Line.Parsed_CLI)
+                              return String_Status
    is
       function Bits_To_Char (Entropy : Positive;
                              Specs   : Password_Conditions.Condition_Type)
@@ -76,7 +66,8 @@ package body Clortho.Command_Runners is
       end Bits_To_Char;
    begin
       if User_Provided_Password (Config) then
-         return User_Password (Config);
+         return (S      => To_Unbounded_String (User_Password (Config)),
+                 Status => Success);
       end if;
 
       declare
@@ -90,6 +81,7 @@ package body Clortho.Command_Runners is
                               Value (Password_Spec (Config))
                            else
                               Default_Specs);
+
          Parsed_Specs : constant Password_Style.Parsing_Result :=
                           Password_Style.Parse
                             (Input       => Specs,
@@ -99,7 +91,8 @@ package body Clortho.Command_Runners is
 
       begin
          if Parsed_Specs.Status /= Password_Style.Ok then
-            return Void_Password;
+            return (S      => Null_Unbounded_String,
+                    Status => Failure ("Bad spec syntax"));
 
          else
             pragma Assert (Parsed_Specs.Status = Password_Style.Ok);
@@ -116,27 +109,52 @@ package body Clortho.Command_Runners is
                Length := Default_Password_Length;
             end if;
 
-            return PG.Get_Password (Length     => Length,
-                                    Constraint => Parsed_Specs.Conditions);
+            return (S      =>
+                      To_Unbounded_String
+                        (PG.Get_Password (Length, Parsed_Specs.Conditions)),
+                    Status => Success);
          end if;
       end;
    end Get_New_Password;
 
    function Unexpected_Password_Option (Config : Command_Line.Parsed_CLI)
-                                        return Command_Exit_Status
-   is ((Err => Unexpected_Password_Option));
+                                        return Exit_Status
+   is (Failure ("Unexpected password-related option"));
 
    ------------------
    -- Get_Password --
    ------------------
 
    procedure Get_Password (Config         : Command_Line.Parsed_CLI;
-                           Command_Status : out Command_Exit_Status) is
+                           Db             : in out Clortho.Db.Password_Db;
+                           Command_Status : out Exit_Statuses.Exit_Status)
+   is
    begin
       if not No_Password_Options (Config) then
          Command_Status := Unexpected_Password_Option (Config);
          return;
       end if;
+
+      declare
+         use Password_Targets;
+
+         Key : constant String := Entry_Key (Config);
+         Ver : constant Positive := Requested_Version (Config);
+      begin
+         if not Contains (Db, Key) then
+            Command_Status := Failure ("Name not found");
+            return;
+         end if;
+
+         if N_Versions (Db, Key) < Ver then
+            Command_Status := Failure ("Version not found");
+            return;
+         end if;
+
+         Send_Password_To (Password => Get_Password (Db, Key, Ver),
+                           Target   => Target (Config),
+                           Status   => Command_Status);
+      end;
    end Get_Password;
 
    ------------------
@@ -144,11 +162,12 @@ package body Clortho.Command_Runners is
    ------------------
 
    procedure Create_Entry (Config         : Command_Line.Parsed_CLI;
-                           Command_Status : out Command_Exit_Status) is
-      New_Password : constant String := Get_New_Password (Config);
+                           Db             : in out Clortho.Db.Password_Db;
+                           Command_Status : out Exit_Status) is
+      New_Password : constant String_Status := Get_New_Password (Config);
    begin
-      if New_Password = Void_Password then
-         Command_Status := (Err => Generic_Error);
+      if not Is_Success (New_Password.Status) then
+         Command_Status := New_Password.Status;
          return;
       end if;
    end Create_Entry;
@@ -158,12 +177,13 @@ package body Clortho.Command_Runners is
    --------------------
 
    procedure Renew_Password (Config         : Command_Line.Parsed_CLI;
-                             Command_Status : out Command_Exit_Status)
+                             Db             : in out Clortho.Db.Password_Db;
+                             Command_Status : out Exit_Status)
    is
-      New_Password : constant String := Get_New_Password (Config);
+      New_Password : constant String_Status := Get_New_Password (Config);
    begin
-      if New_Password = Void_Password then
-         Command_Status := (Err => Generic_Error);
+      if not Is_Success (New_Password.Status) then
+         Command_Status := New_Password.Status;
          return;
       end if;
    end Renew_Password;
@@ -173,7 +193,8 @@ package body Clortho.Command_Runners is
    ------------------
 
    procedure Vacuum_Entry (Config         : Command_Line.Parsed_CLI;
-                           Command_Status : out Command_Exit_Status) is
+                           Db             : in out Clortho.Db.Password_Db;
+                           Command_Status : out Exit_Status) is
    begin
       if not No_Password_Options (Config) then
          Command_Status := Unexpected_Password_Option (Config);
@@ -190,7 +211,8 @@ package body Clortho.Command_Runners is
    ---------------------
 
    procedure Roll_Back_Entry (Config         : Command_Line.Parsed_CLI;
-                              Command_Status : out Command_Exit_Status) is
+                              Db             : in out Clortho.Db.Password_Db;
+                              Command_Status : out Exit_Status) is
    begin
       if not No_Password_Options (Config) then
          Command_Status := Unexpected_Password_Option (Config);
@@ -207,7 +229,8 @@ package body Clortho.Command_Runners is
    ------------------
 
    procedure Delete_Entry (Config         : Command_Line.Parsed_CLI;
-                           Command_Status : out Command_Exit_Status) is
+                           Db             : in out Clortho.Db.Password_Db;
+                           Command_Status : out Exit_Status) is
    begin
       if not No_Password_Options (Config) then
          Command_Status := Unexpected_Password_Option (Config);
@@ -224,7 +247,8 @@ package body Clortho.Command_Runners is
    ----------------
 
    procedure Vacuum_All (Config         : Command_Line.Parsed_CLI;
-                         Command_Status : out Command_Exit_Status)
+                         Db             : in out Clortho.Db.Password_Db;
+                         Command_Status : out Exit_Status)
    is
    begin
       if not No_Password_Options (Config) then
@@ -240,7 +264,8 @@ package body Clortho.Command_Runners is
    ----------
 
    procedure List (Config         : Command_Line.Parsed_CLI;
-                   Command_Status : out Command_Exit_Status)
+                   Db             : in out Clortho.Db.Password_Db;
+                   Command_Status : out Exit_Status)
    is
    begin
       if not No_Password_Options (Config) then

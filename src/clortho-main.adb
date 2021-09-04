@@ -7,7 +7,9 @@ with Ada.Command_Line;
 with Clortho.Command_Line;
 with Clortho.Logging;
 with Clortho.Commands;
-with Clortho.Command_Runners;
+with Clortho.Command_Dispatchers;
+with Clortho.Db;
+with Clortho.Exit_Statuses;
 
 procedure Clortho.Main is
 
@@ -31,8 +33,6 @@ pragma SPARK_Mode;
 
    Config : constant Clortho.Command_Line.Parsed_CLI :=
               Clortho.Command_Line.Parse_Command_Line;
-
-   Exit_Status : Command_Runners.Command_Exit_Status;
 begin
    if not Command_Line.Is_Ok (Config) then
       Logging.Print_To_Stderr (Command_Line.Error_Message (Config));
@@ -40,37 +40,23 @@ begin
       return;
    end if;
 
-   case Command_Line.Command (Config) is
-      when Commands.Get_Password =>
-         Command_Runners.Get_Password (Config, Exit_Status);
+   declare
+      Dispatcher : Command_Dispatchers.Dispatcher_Type :=
+                     Command_Dispatchers.New_Dispatcher (Config);
 
-      when Commands.Create_Entry =>
-         Command_Runners.Create_Entry (Config, Exit_Status);
+      Status     : Exit_Statuses.Exit_Status;
+   begin
+      Db.Use_DB (Filename => "db.dat",
+                 DB_Key   => "",
+                 User     => Dispatcher,
+                 Success  => status);
 
-      when Commands.Renew_Password =>
-         Command_Runners.Renew_Password (Config, Exit_Status);
-
-      when Commands.Vacuum_Entry =>
-         Command_Runners.Vacuum_Entry (Config, Exit_Status);
-
-      when Commands.Roll_Back_Entry =>
-         Command_Runners.Roll_Back_Entry (Config, Exit_Status);
-
-      when Commands.Delete_Entry =>
-         Command_Runners.Delete_Entry (Config, Exit_Status);
-
-      when Commands.Vacuum_All =>
-         Command_Runners.Vacuum_All (Config, Exit_Status);
-
-      when Commands.List =>
-         Command_Runners.List (Config, Exit_Status);
-   end case;
-
-   if not Command_Runners.Is_Ok (Exit_Status) then
-      Logging.Print_To_Stderr (Command_Runners.Error_Message (Exit_Status));
-      Set_Exit_Status (Ada.Command_Line.Failure);
-   else
-      Set_Exit_Status (Ada.Command_Line.Success);
-   end if;
+      if not Exit_Statuses.Is_Ok (Exit_Status) then
+         Logging.Print_To_Stderr (Exit_Statuses.Error_Message (Exit_Status));
+         Set_Exit_Status (Ada.Command_Line.Failure);
+      else
+         Set_Exit_Status (Ada.Command_Line.Success);
+      end if;
+   end;
 
 end Clortho.Main;
