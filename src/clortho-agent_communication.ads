@@ -2,7 +2,9 @@ with Clortho.Agent_Protocol_Data;   use Clortho.Agent_Protocol_Data;
 with Clortho.Agent_Channels;        use Clortho.Agent_Channels;
 
 package Clortho.Agent_Communication is
-   procedure Open (Channel : in out Agent_Channel);
+   procedure Open_Agent (Channel : in out Agent_Channel);
+
+   procedure Open_client (Channel : in out Agent_Channel);
 
    procedure Close (Channel : in out Agent_Channel);
 
