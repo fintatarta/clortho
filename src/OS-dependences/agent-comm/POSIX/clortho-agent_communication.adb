@@ -1,4 +1,7 @@
 pragma Ada_2012;
+with GNAT.Sockets;
+with Clortho.Agent_Channels;    use Clortho.Agent_Channels;
+
 package body Clortho.Agent_Communication is
 
    ----------
