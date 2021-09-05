@@ -1,4 +1,6 @@
 with Clortho.Exit_Statuses;
+with Clortho.DB_Keys;
+
 package Clortho.Db is
    pragma SPARK_Mode;
 
@@ -56,7 +58,7 @@ package Clortho.Db is
        Pre => Is_Valid (Db);
 
    procedure Use_DB (Filename      : String;
-                     DB_Key        : String;
+                     DB_Key        : DB_Keys.DB_Key_Type;
                      User          : in out Abstract_Db_User'Class;
                      Success       :    out Exit_Statuses.Exit_Status);
 
