@@ -4,7 +4,7 @@ with Clortho.Agent_Channels;        use Clortho.Agent_Channels;
 package Clortho.Agent_Communication is
    procedure Open_Agent (Channel : in out Agent_Channel);
 
-   procedure Open_client (Channel : in out Agent_Channel);
+   procedure Open_Client (Channel : in out Agent_Channel);
 
    procedure Close (Channel : in out Agent_Channel);
 

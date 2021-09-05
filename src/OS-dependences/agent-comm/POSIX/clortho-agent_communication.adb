@@ -1,6 +1,6 @@
 pragma Ada_2012;
-with GNAT.Sockets;
-with Clortho.Agent_Channels;    use Clortho.Agent_Channels;
+with GNAT.Sockets;              use GNAT.Sockets;
+with Interfaces.C;
 
 package body Clortho.Agent_Communication is
 
@@ -12,8 +12,6 @@ package body Clortho.Agent_Communication is
    ----------
 
    procedure Open_Agent (Channel : in out Agent_Channel) is
-      use GNAT.Sockets;
-
       Addr : constant Sock_Addr_Type := Unix_Socket_Address (Socket_Name);
    begin
       Create_Socket (Channel);
@@ -78,9 +76,21 @@ package body Clortho.Agent_Communication is
    ----------
 
    function Read (From : Agent_Channel) return Agent_Command is
+      Socket  : Socket_Type;
+      Address : Sock_Addr_Type;
+
    begin
-      pragma Compile_Time_Warning (Standard.True, "Read unimplemented");
-      return raise Program_Error with "Unimplemented function Read";
+      Accept_Socket (Server  => From,
+                     Socket  => Socket,
+                     Address => Address);
+
+      declare
+         S       : constant Stream_Access := Stream (Socket);
+         Command : constant Agent_Command := Agent_Command'Input (S);
+      begin
+         Close_Socket (Socket);
+         return Command;
+      end;
    end Read;
 
    -----------
