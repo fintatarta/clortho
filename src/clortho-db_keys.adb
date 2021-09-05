@@ -3,7 +3,9 @@ with Ada.Command_Line;
 with Ada.Text_IO; use Ada.Text_IO;
 with Hidden_Input;
 
-with Clortho.Agent_Communication;
+with Clortho.Agent_Channels;
+with Clortho.Agent_Communication;  use Clortho.Agent_Communication;
+with Clortho.Agent_Protocol_Data;
 
 package body Clortho.DB_Keys is
 
@@ -12,9 +14,14 @@ package body Clortho.DB_Keys is
    ---------
 
    function Get return DB_Key_Type is
+      Channel : Agent_Channels.Client_Channel;
+      Reply   : Agent_Protocol_Data.Agent_Reply;
    begin
-      pragma Compile_Time_Warning (Standard.True, "Get unimplemented");
-      return raise Program_Error with "Unimplemented function Get";
+      Open_Client (Channel);
+      Write (Channel, Agent_Protocol_Data.Gimme_Key);
+      Read (Channel, Reply);
+
+      return Agent_Protocol_Data.Key (Reply);
    end Get;
 
    -------------------
@@ -54,23 +61,24 @@ package body Clortho.DB_Keys is
                         Last   => Last);
 
       declare
-         use Agent_Communication;
-
          Db_Key : constant DB_Key_Type :=
                     Load_Encrypted_File ("db_key.enc", Passphrase (1 .. Last));
 
-         Channel : Agent_Channel;
+         Channel : Agent_Channels.Agent_Channel;
+         Request : Agent_Protocol_Data.Agent_Command;
       begin
-         Open (Channel);
+         Open_Agent (Channel);
          Publish (Channel);
          Detach_Yourself;
 
          loop
-            case Action (Read (Channel)) is
-               when Get_Key =>
-                  Write (Channel, Key_Data (Db_Key));
+            Read (Channel, Request);
 
-               when Bye =>
+            case Agent_Protocol_Data.Action (Request) is
+               when Agent_Protocol_Data.Get_Key =>
+                  Write (Channel, Agent_Protocol_Data.Key_Data (Db_Key));
+
+               when Agent_Protocol_Data.Bye =>
                   Close (Channel);
                   return;
             end case;

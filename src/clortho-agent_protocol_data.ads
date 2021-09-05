@@ -1,9 +1,10 @@
 with Clortho.DB_Keys;
+with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 package Clortho.Agent_Protocol_Data is
    type Agent_Action is (Get_Key, Bye);
 
-   type Agent_Command (<>) is private;
+   type Agent_Command is private;
 
    function Action (Item : Agent_Command) return Agent_Action;
 
@@ -12,13 +13,17 @@ package Clortho.Agent_Protocol_Data is
    function Bye return Agent_Command;
 
    type Reply_Status is (OK, Data);
-   type Agent_Reply (<>) is private;
+   type Agent_Reply is private;
 
    function Status (Reply : Agent_Reply) return Reply_Status;
 
    function OK return Agent_Reply;
 
    function Key_Data (Key : DB_Keys.DB_Key_Type) return Agent_Reply;
+
+   function Key (Reply : Agent_Reply) return DB_Keys.DB_Key_Type
+     with
+       Pre => Status (Reply) = Data;
 
 private
 
@@ -33,29 +38,21 @@ private
    function Bye return Agent_Command
    is (Agent_Command'(Action => Bye));
 
-   type Agent_Reply (Name   : Reply_Status;
-                     Length : Natural)
-   is
+   type Agent_Reply is
       record
-         case Name is
-            when OK =>
-               null;
-
-            when Data =>
-               D : String (1 .. Length);
-         end case;
+         Status : Reply_Status;
+         Data   : Unbounded_String;
       end record;
 
    function Action (Item : Agent_Command) return Agent_Action
    is (Item.Action);
 
    function OK return Agent_Reply
-   is (Agent_Reply'(Name   => OK,
-                    Length => 0));
+   is (Agent_Reply'(Status => OK,
+                    Data   => Null_Unbounded_String));
 
    function Key_Data (Key : DB_Keys.DB_Key_Type) return Agent_Reply
-   is (Agent_Reply'(Name   => Data,
-                    Length => Key'Length,
-                    D      => String (Key)));
+   is (Agent_Reply'(Status => Data,
+                    Data   => To_Unbounded_String (String (Key))));
 
 end Clortho.Agent_Protocol_Data;

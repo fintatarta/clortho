@@ -4,16 +4,25 @@ with Clortho.Agent_Channels;        use Clortho.Agent_Channels;
 package Clortho.Agent_Communication is
    procedure Open_Agent (Channel : in out Agent_Channel);
 
-   procedure Open_Client (Channel : in out Agent_Channel);
+   procedure Open_Client (Channel : in out Client_Channel);
 
    procedure Close (Channel : in out Agent_Channel);
+
+   procedure Close (Channel : in out Client_Channel);
 
    procedure Publish (Channel : Agent_Channel);
 
    procedure Detach_Yourself;
 
-   function Read (From : Agent_Channel) return Agent_Command;
+   procedure Read (From    : in out Agent_Channel;
+                   Command : out Agent_Command);
 
-   procedure Write (To   : Agent_Channel;
-                    What : Agent_Reply);
+   procedure Write (To    : in out Agent_Channel;
+                    Reply : Agent_Reply);
+
+   procedure Read (From    : in out Client_Channel;
+                   Reply   : out Agent_Reply);
+
+   procedure Write (To   : in out Client_Channel;
+                    What : Agent_Command);
 end Clortho.Agent_Communication;
