@@ -8,6 +8,7 @@ project Clortho is
                         "src/OS-dependences/random/dev-based",
                         "src/OS-dependences/clipboard/X11",
                         "src/OS-dependences/agent-comm/POSIX",
+			"src/mem_stream",
                         "src/Hidden_Get/",
                         "src/Hidden_Get/Posix");
    for Object_Dir use "obj";
