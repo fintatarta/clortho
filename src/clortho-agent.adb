@@ -1,4 +1,4 @@
-pragma Ada_2012;
+pragma Ada_2022;
 
 with Ada.Text_IO;
 
