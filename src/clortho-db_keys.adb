@@ -6,6 +6,7 @@ with Hidden_Input;
 with Clortho.Agent_Channels;
 with Clortho.Agent_Communication;  use Clortho.Agent_Communication;
 with Clortho.Agent_Protocol_Data;
+with Clortho.Utilities;
 
 package body Clortho.DB_Keys is
 
@@ -20,6 +21,7 @@ package body Clortho.DB_Keys is
       Open_Client (Channel);
       Write (Channel, Agent_Protocol_Data.Gimme_Key);
       Read (Channel, Reply);
+      Close (Channel);
 
       return Agent_Protocol_Data.Key (Reply);
    end Get;
@@ -29,23 +31,10 @@ package body Clortho.DB_Keys is
    -------------------
 
    function Is_Agent_Call return Boolean is
-      Command    : constant String := Ada.Command_Line.Command_Name;
       Agent_Name : constant String := "clortho-agent";
    begin
-      if Command'Length < Agent_Name'Length then
-         return False;
-      end if;
-
-      pragma Assert (Command'Length > 0);
-
-      declare
-         From : constant Positive := Command'Last - Agent_Name'Length + 1;
-         S    : constant String := Command (From .. Command'Last) with Ghost;
-      begin
-         pragma Assert (S'Length = Agent_Name'Length);
-
-         return Command (From .. Command'Last) = Agent_Name;
-      end;
+      return Utilities.Ends_With (Item => Ada.Command_Line.Command_Name,
+                                  Tail => Agent_Name);
    end Is_Agent_Call;
 
    -------------------

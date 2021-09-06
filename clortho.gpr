@@ -13,7 +13,7 @@ project Clortho is
    for Object_Dir use "obj";
    for Create_Missing_Dirs use "True";
    for Exec_Dir use "bin";
-   for Main use ("clortho-main.adb");
+   for Main use ("clortho-main.adb", "clortho-agent.adb");
    for Languages use ("Ada", "C");
 
    type Enabled_Kind is ("enabled", "disabled");
@@ -89,6 +89,7 @@ project Clortho is
 
    package Builder is
       for Executable ("clortho-main.adb") use "clortho";
+      for Executable ("clortho-agent.adb") use "clortho-agent";
    end Builder;
 
 end Clortho;
