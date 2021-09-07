@@ -1,5 +1,6 @@
 pragma Ada_2022;
 with Ada.Streams.Storage.Bounded;   use Ada.Streams;
+with Ada.Streams.Stream_IO;
 
 private with SPARKNaCl.Core;
 
@@ -22,6 +23,12 @@ package File_Encryption is
 
    function Load_Encrypted_File
      (Filename : String;
+      Key      : Key_Type)
+      return Storage.Bounded.Stream_Type;
+
+   function Load_Encrypted_File
+     (Stream   : Stream_IO.Stream_Access;
+      Size     : Stream_IO.Count;
       Key      : Key_Type)
       return Storage.Bounded.Stream_Type;
 
