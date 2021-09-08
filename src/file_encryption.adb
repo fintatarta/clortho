@@ -6,7 +6,6 @@ with SPARKNaCl.Stream;
 package body File_Encryption is
    use SPARKNaCl;
 
-
    function To_Byte_Seq (X : String) return Byte_Seq;
 
    function To_Byte_Seq (X     : Stream_Element_Array;
@@ -18,12 +17,28 @@ package body File_Encryption is
 
    subtype Password_Nonce_Type is Stream_Element_Array (1 .. Password_Nonce_Size);
 
+   function Get_Salsa20_Nonce return SPARKNaCl.Stream.Salsa20_Nonce;
+
+   function Get_Password_Nonce  return Password_Nonce_Type;
+
    function Get_Password_Nonce  return Password_Nonce_Type
-   is ((others => 0));
+   is
+      use type I32;
 
-   function Get_Salsa20_Nonce return Salsa20_Nonce
-   is ((others => 0));
+      Tmp : Byte_Seq (0 .. I32 (Password_Nonce_Size) - 1);
+   begin
+      Random_Bytes (Tmp);
 
+      return To_Stream_Array (Tmp);
+   end Get_Password_Nonce;
+
+   function Get_Salsa20_Nonce return SPARKNaCl.Stream.Salsa20_Nonce
+   is
+      Result : SPARKNaCl.Stream.Salsa20_Nonce;
+   begin
+      Random_Bytes (Byte_Seq (Result));
+      return Result;
+   end Get_Salsa20_Nonce;
 
    -----------------
    -- To_Byte_Seq --
