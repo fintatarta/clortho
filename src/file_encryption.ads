@@ -40,14 +40,20 @@ package File_Encryption is
    procedure Save_Encrypted_File
      (Filename : String;
       Key      : Key_Type;
-      Data     : Storage.Storage_Stream_Type'Class);
+      Data     : in out Storage.Storage_Stream_Type'Class);
 
    procedure Save_Encrypted_File
      (Filename : String;
       Password : String;
-      Data     : Storage.Storage_Stream_Type'Class);
+      Data     : in out Storage.Storage_Stream_Type'Class);
+
+   procedure Save_Encrypted
+     (Stream : Stream_IO.Stream_Access;
+      Key    : Key_Type;
+      Data   : in out Storage.Storage_Stream_Type'Class);
+
 private
-   type Key_Type is
+   type Key_Type  is
       record
          K : SPARKNaCl.Core.Salsa20_Key;
       end record;

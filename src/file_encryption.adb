@@ -6,11 +6,24 @@ with SPARKNaCl.Stream;
 package body File_Encryption is
    use SPARKNaCl;
 
+
    function To_Byte_Seq (X : String) return Byte_Seq;
 
-   function To_Byte_Seq (X : Stream_Element_Array) return Byte_Seq;
+   function To_Byte_Seq (X     : Stream_Element_Array;
+                         First : I32 := 0) return Byte_Seq;
 
    function To_Stream_Array (X : Byte_Seq) return Stream_Element_Array;
+
+   Password_Nonce_Size : constant Stream_Element_Count := 512 / 8;
+
+   subtype Password_Nonce_Type is Stream_Element_Array (1 .. Password_Nonce_Size);
+
+   function Get_Password_Nonce  return Password_Nonce_Type
+   is ((others => 0));
+
+   function Get_Salsa20_Nonce return Salsa20_Nonce
+   is ((others => 0));
+
 
    -----------------
    -- To_Byte_Seq --
@@ -32,10 +45,13 @@ package body File_Encryption is
    -- To_Byte_Seq --
    -----------------
 
-   function To_Byte_Seq (X : Stream_Element_Array) return Byte_Seq
+   function To_Byte_Seq (X     : Stream_Element_Array;
+                         First : I32 := 0) return Byte_Seq
    is
+      use type I32;
+
       subtype Source is Stream_Element_Array (X'Range);
-      subtype Target is Byte_Seq (1 .. Source'Length);
+      subtype Target is Byte_Seq (First .. First + Source'Length - 1);
 
       function Convert is
         new Ada.Unchecked_Conversion (Source => Source,
@@ -152,29 +168,90 @@ package body File_Encryption is
    -- Load_Encrypted_File --
    -------------------------
 
-   function Load_Encrypted_File
-     (Filename : String; Key : Key_Type) return Storage.Bounded.Stream_Type
+   function Load_Encrypted_File (Filename : String;
+                                 Key      : Key_Type)
+                                 return Storage.Bounded.Stream_Type
    is
+      Input : Stream_IO.File_Type;
    begin
-      pragma Compile_Time_Warning
-        (Standard.True, "Load_Encrypted_File unimplemented");
-      return
-      raise Program_Error with "Unimplemented function Load_Encrypted_File";
+      Stream_IO.Open (File => Input,
+                      Mode => Stream_IO.In_File,
+                      Name => Filename);
+
+      return Result : Storage.Bounded.Stream_Type :=
+        Load_Encrypted_File (Stream => Stream_IO.Stream (Input),
+                             Size   => Stream_IO.Size (Input),
+                             Key    => Key)
+      do
+         Stream_IO.Close (Input);
+      end return;
    end Load_Encrypted_File;
 
    -------------------------
    -- Load_Encrypted_File --
    -------------------------
 
-   function Load_Encrypted_File
-     (Filename : String; Password : String) return Storage.Bounded.Stream_Type
+   function Load_Encrypted_File (Filename : String;
+                                 Password : String)
+                                 return Storage.Bounded.Stream_Type
    is
+      Input  : Stream_IO.File_Type;
+      Stream : Stream_IO.Stream_Access;
+      Nonce  : Password_Nonce_Type;
    begin
-      pragma Compile_Time_Warning
-        (Standard.True, "Load_Encrypted_File unimplemented");
-      return
-      raise Program_Error with "Unimplemented function Load_Encrypted_File";
+      Stream_IO.Open (File => Input,
+                      Mode => Stream_IO.In_File,
+                      Name => Filename);
+
+      Stream := Stream_IO.Stream (Input);
+
+      Password_Nonce_Type'Read (Stream, Nonce);
+
+      declare
+         Key : constant Key_Type := Stretch_Password (Password, Nonce);
+      begin
+         return Result : Storage.Bounded.Stream_Type :=
+           Load_Encrypted_File (Stream => Stream,
+                                Size   => Stream_IO.Size (Input),
+                                Key    => Key)
+         do
+            Stream_IO.Close (Input);
+         end return;
+      end;
    end Load_Encrypted_File;
+
+   procedure Save_Encrypted
+     (Stream : Stream_IO.Stream_Access;
+      Key    : Key_Type;
+      Data   : in out Storage.Storage_Stream_Type'Class)
+   is
+      use SPARKNaCl.Stream;
+
+      Nonce : constant Salsa20_Nonce := Get_Salsa20_Nonce;
+      Buffer : Stream_Element_Array (1 .. Storage.Element_Count (Data));
+      Last : Stream_Element_Offset;
+   begin
+      Data.Read (Item => Buffer,
+                 Last => Last);
+
+      pragma Assert (Buffer'Last = Last);
+
+      declare
+         use type I32;
+
+         Cleartext : constant Byte_Seq := To_Byte_Seq (Buffer);
+         Encrypted : Byte_Seq (Cleartext'Range);
+      begin
+         SPARKNaCl.Stream.Salsa20_Xor (C => Encrypted,
+                                       M => Cleartext,
+                                       N => Nonce,
+                                       K => Key.K);
+
+         Salsa20_Nonce'Write (Stream, Nonce);
+
+         Byte_Seq'Write (Stream, Encrypted);
+      end;
+   end Save_Encrypted;
 
    -------------------------
    -- Save_Encrypted_File --
@@ -182,12 +259,19 @@ package body File_Encryption is
 
    procedure Save_Encrypted_File
      (Filename : String; Key : Key_Type;
-      Data     : Storage.Storage_Stream_Type'Class)
+      Data     : in out Storage.Storage_Stream_Type'Class)
    is
+      Target : Stream_IO.File_Type;
    begin
-      pragma Compile_Time_Warning
-        (Standard.True, "Save_Encrypted_File unimplemented");
-      raise Program_Error with "Unimplemented procedure Save_Encrypted_File";
+      Stream_IO.Open (File => Target,
+                      Mode => Stream_IO.Out_File,
+                      Name => Filename);
+
+      Save_Encrypted (Stream => Stream_IO.Stream (Target),
+                      Key    => Key,
+                      Data   => Data);
+
+      Stream_IO.Close (Target);
    end Save_Encrypted_File;
 
    -------------------------
@@ -195,13 +279,25 @@ package body File_Encryption is
    -------------------------
 
    procedure Save_Encrypted_File
-     (Filename : String; Password : String;
-      Data     : Storage.Storage_Stream_Type'Class)
+     (Filename : String;
+      Password : String;
+      Data     : in out Storage.Storage_Stream_Type'Class)
    is
+      Nonce : constant Password_Nonce_Type := Get_Password_Nonce;
+      Key   : constant Key_Type := Stretch_Password (Password, Nonce);
+      Output : Stream_IO.File_Type;
+      Stream : Stream_IO.Stream_Access;
    begin
-      pragma Compile_Time_Warning
-        (Standard.True, "Save_Encrypted_File unimplemented");
-      raise Program_Error with "Unimplemented procedure Save_Encrypted_File";
+      Stream_IO.Open (File => Output,
+                      Mode => Stream_IO.Out_File,
+                      Name => Filename);
+
+      Stream := Stream_IO.Stream (Output);
+
+      Password_Nonce_Type'Write (Stream, Nonce);
+      Save_Encrypted (Stream, Key, Data);
+
+      Stream_IO.Close (Output);
    end Save_Encrypted_File;
 
 end File_Encryption;
