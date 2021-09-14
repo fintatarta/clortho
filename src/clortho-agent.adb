@@ -7,7 +7,7 @@ with Clortho.Agent_Protocol_Data;
 with Clortho.Agent_Communication;
 with Clortho.DB_Keys;
 with Clortho.Configuration;
-with Hidden_Input;
+with Get_Password;
 
 procedure Clortho.Agent is
    pragma SPARK_Mode;
@@ -16,7 +16,7 @@ procedure Clortho.Agent is
    Last : Natural;
 begin
    Ada.Text_IO.Put ("Passphrase: ");
-   Hidden_Input.Get (Result => Passphrase,
+   Get_Password.Get (Buffer => Passphrase,
                      Last   => Last);
 
    declare
