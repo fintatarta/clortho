@@ -4,6 +4,7 @@ with SPARKNaCl.Hashing;
 with SPARKNaCl.Stream;
 
 package body File_Encryption is
+   pragma SPARK_Mode;
    use SPARKNaCl;
 
    function To_Byte_Seq (X : String) return Byte_Seq;
@@ -148,6 +149,7 @@ package body File_Encryption is
       Key      : Key_Type)
       return Storage.Bounded.Stream_Type
    is
+      pragma SPARK_Mode (Off);
       use SPARKNaCl.Stream;
 
       Encrypted : Stream_Element_Array (1 .. Stream_Element_Count (Size));
@@ -187,13 +189,15 @@ package body File_Encryption is
                                  Key      : Key_Type)
                                  return Storage.Bounded.Stream_Type
    is
+      pragma SPARK_Mode (Off);
+
       Input : Stream_IO.File_Type;
    begin
       Stream_IO.Open (File => Input,
                       Mode => Stream_IO.In_File,
                       Name => Filename);
 
-      return Result : Storage.Bounded.Stream_Type :=
+      return Result : constant Storage.Bounded.Stream_Type :=
         Load_Encrypted_File (Stream => Stream_IO.Stream (Input),
                              Size   => Stream_IO.Size (Input),
                              Key    => Key)
@@ -210,6 +214,8 @@ package body File_Encryption is
                                  Password : String)
                                  return Storage.Bounded.Stream_Type
    is
+      pragma SPARK_Mode (Off);
+
       Input  : Stream_IO.File_Type;
       Stream : Stream_IO.Stream_Access;
       Nonce  : Password_Nonce_Type;
@@ -225,7 +231,7 @@ package body File_Encryption is
       declare
          Key : constant Key_Type := Stretch_Password (Password, Nonce);
       begin
-         return Result : Storage.Bounded.Stream_Type :=
+         return Result : constant Storage.Bounded.Stream_Type :=
            Load_Encrypted_File (Stream => Stream,
                                 Size   => Stream_IO.Size (Input),
                                 Key    => Key)
@@ -240,6 +246,8 @@ package body File_Encryption is
       Key    : Key_Type;
       Data   : in out Storage.Storage_Stream_Type'Class)
    is
+      pragma SPARK_Mode (Off);
+
       use SPARKNaCl.Stream;
 
       Nonce : constant Salsa20_Nonce := Get_Salsa20_Nonce;
@@ -252,8 +260,6 @@ package body File_Encryption is
       pragma Assert (Buffer'Last = Last);
 
       declare
-         use type I32;
-
          Cleartext : constant Byte_Seq := To_Byte_Seq (Buffer);
          Encrypted : Byte_Seq (Cleartext'Range);
       begin
@@ -276,6 +282,8 @@ package body File_Encryption is
      (Filename : String; Key : Key_Type;
       Data     : in out Storage.Storage_Stream_Type'Class)
    is
+      pragma SPARK_Mode (Off);
+
       Target : Stream_IO.File_Type;
    begin
       Stream_IO.Open (File => Target,
@@ -298,6 +306,8 @@ package body File_Encryption is
       Password : String;
       Data     : in out Storage.Storage_Stream_Type'Class)
    is
+      pragma SPARK_Mode (Off);
+
       Nonce : constant Password_Nonce_Type := Get_Password_Nonce;
       Key   : constant Key_Type := Stretch_Password (Password, Nonce);
       Output : Stream_IO.File_Type;

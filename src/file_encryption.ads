@@ -5,6 +5,7 @@ with Ada.Streams.Stream_IO;
 private with SPARKNaCl.Core;
 
 package File_Encryption is
+   pragma SPARK_Mode;
    type Key_Type is limited private;
 
    Key_Nbits : constant Positive := 256;
@@ -24,7 +25,8 @@ package File_Encryption is
    function Load_Encrypted_File
      (Filename : String;
       Key      : Key_Type)
-      return Storage.Bounded.Stream_Type;
+      return Storage.Bounded.Stream_Type
+     with SPARK_Mode => Off;
 
    function Load_Encrypted_File
      (Stream   : Stream_IO.Stream_Access;

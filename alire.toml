@@ -7,10 +7,9 @@ maintainers = ["Riccardo Bernardini <riccardo.bernardini@uniud.it>"]
 maintainers-logins = ["mockturtle"]
 
 executables = ["clortho"]
-
-
-[[depends-on]]  # This line was added by `alr with`
-sparknacl = "^2.0.0"  # This line was added by `alr with`
-
-[[depends-on]]  # This line was added by `alr with`
-uri_ada = "^1.0.0"  # This line was added by `alr with`
+[[depends-on]]  # Added by alr
+sparknacl = "^2.0.0"  # Added by alr
+[[depends-on]]  # Added by alr
+uri_ada = "^1.0.0"  # Added by alr
+[[depends-on]]  # Added by alr
+get_password = "^1.0.0-rc"  # Added by alr
